@@ -617,6 +617,16 @@ void getNativePixelFormat(EGLDisplay dpy, egl_connection_t* cnx, EGLConfig confi
     EGLint componentType = EGL_COLOR_COMPONENT_TYPE_FIXED_EXT;
     cnx->egl.eglGetConfigAttrib(dpy, config, EGL_COLOR_COMPONENT_TYPE_EXT, &componentType);
 
+#if WORKAROUND_BUG_10194508
+    int intFormat = (int)(*format);
+    if (!cnx->egl.eglGetConfigAttrib(dpy, config, EGL_NATIVE_VISUAL_ID,
+            &intFormat)) {
+        ALOGE("eglGetConfigAttrib(EGL_NATIVE_VISUAL_ID) failed: %#x",
+                eglGetError());
+        format = 0;
+    }
+    *format = (android_pixel_format)intFormat;
+#else
     EGLint a = 0;
     EGLint r, g, b;
     r = g = b = 0;
@@ -664,6 +674,7 @@ void getNativePixelFormat(EGLDisplay dpy, egl_connection_t* cnx, EGLConfig confi
             *format = HAL_PIXEL_FORMAT_RGBA_FP16;
         }
     }
+#endif
 }
 
 EGLBoolean sendSurfaceMetadata(egl_surface_t* s) {
