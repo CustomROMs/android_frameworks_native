@@ -110,6 +110,11 @@ cc_library {
         binder32bit: {
             cflags: ["-DBINDER_IPC_32BIT=1"],
         },
+        lineage: {
+            disable_ashmem_tracking: {
+                cflags: ["-DDISABLE_ASHMEM_TRACKING"],
+            },
+        },
     },
 
     shared_libs: [
