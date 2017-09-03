@@ -211,9 +211,8 @@ int Mapper::unlock(buffer_handle_t bufferHandle) const
 Allocator::Allocator(const Mapper& mapper)
     : mMapper(mapper)
 {
-    mAllocator = IAllocator::getService();
-    if (mAllocator == nullptr) {
-        LOG_ALWAYS_FATAL("gralloc-alloc is missing");
+    if (mMapper.valid()) {
+        mAllocator = IAllocator::getService();
     }
 }
 
