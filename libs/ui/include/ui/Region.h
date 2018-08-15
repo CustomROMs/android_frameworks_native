@@ -27,6 +27,8 @@
 
 #include <string>
 
+#include <android-base/macros.h>
+
 namespace android {
 // ---------------------------------------------------------------------------
 
@@ -92,11 +94,11 @@ public:
             Region&     subtractSelf(const Region& rhs, int dx, int dy);
 
             // these translate rhs first
-    const   Region      translate(int dx, int dy) const;
-    const   Region      merge(const Region& rhs, int dx, int dy) const;
-    const   Region      mergeExclusive(const Region& rhs, int dx, int dy) const;
-    const   Region      intersect(const Region& rhs, int dx, int dy) const;
-    const   Region      subtract(const Region& rhs, int dx, int dy) const;
+    const   Region      translate(int dx, int dy) const WARN_UNUSED;
+    const   Region      merge(const Region& rhs, int dx, int dy) const WARN_UNUSED;
+    const   Region      mergeExclusive(const Region& rhs, int dx, int dy) const WARN_UNUSED;
+    const   Region      intersect(const Region& rhs, int dx, int dy) const WARN_UNUSED;
+    const   Region      subtract(const Region& rhs, int dx, int dy) const WARN_UNUSED;
 
     // convenience operators overloads
     inline  const Region      operator | (const Region& rhs) const;
