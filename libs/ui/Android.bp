@@ -74,6 +74,7 @@ cc_library_shared {
         "Rect.cpp",
         "Region.cpp",
         "Size.cpp",
+        "Transform.cpp",
         "UiConfig.cpp",
     ],
 
