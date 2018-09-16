@@ -104,12 +104,16 @@ GraphicBuffer::~GraphicBuffer()
 void GraphicBuffer::free_handle()
 {
     if (mOwner == ownHandle) {
-        mBufferMapper.freeBuffer(handle);
+        mBufferMapper.unregisterBuffer(handle);
+        native_handle_close(handle);
+        native_handle_delete(const_cast<native_handle*>(handle));
     } else if (mOwner == ownData) {
         GraphicBufferAllocator& allocator(GraphicBufferAllocator::get());
         allocator.free(handle);
     }
+#ifndef EGL_NEEDS_HANDLE
     handle = NULL;
+#endif
 }
 
 status_t GraphicBuffer::initCheck() const {
@@ -163,16 +167,12 @@ bool GraphicBuffer::needsReallocation(uint32_t inWidth, uint32_t inHeight,
 
 status_t GraphicBuffer::initWithSize(uint32_t inWidth, uint32_t inHeight,
         PixelFormat inFormat, uint32_t inLayerCount, uint64_t inUsage,
-        std::string requestorName)
+        std::string requestorName __unused)
 {
     GraphicBufferAllocator& allocator = GraphicBufferAllocator::get();
     uint32_t outStride = 0;
-    status_t err = allocator.allocate(inWidth, inHeight, inFormat, inLayerCount,
-            inUsage, &handle, &outStride, mId,
-            std::move(requestorName));
+    status_t err = allocator.alloc(inWidth, inHeight, inFormat, static_cast<uint32_t>(inUsage), &handle, &outStride);
     if (err == NO_ERROR) {
-        mBufferMapper.getTransportSize(handle, &mTransportNumFds, &mTransportNumInts);
-
         width = static_cast<int>(inWidth);
         height = static_cast<int>(inHeight);
         format = inFormat;
@@ -189,6 +189,18 @@ status_t GraphicBuffer::initWithHandle(const native_handle_t* handle,
         PixelFormat format, uint32_t layerCount, uint64_t usage,
         uint32_t stride)
 {
+    native_handle_t* clone = nullptr;
+
+    if (method == CLONE_HANDLE) {
+        clone = native_handle_clone(handle);
+        if (!clone) {
+            return NO_MEMORY;
+        }
+
+        handle = clone;
+        method = TAKE_UNREGISTERED_HANDLE;
+    }
+
     ANativeWindowBuffer::width  = static_cast<int>(width);
     ANativeWindowBuffer::height = static_cast<int>(height);
     ANativeWindowBuffer::stride = static_cast<int>(stride);
@@ -197,29 +209,24 @@ status_t GraphicBuffer::initWithHandle(const native_handle_t* handle,
     ANativeWindowBuffer::usage_deprecated = int(usage);
 
     ANativeWindowBuffer::layerCount = layerCount;
+    ANativeWindowBuffer::handle = handle;
 
     mOwner = (method == WRAP_HANDLE) ? ownNone : ownHandle;
 
-    if (method == TAKE_UNREGISTERED_HANDLE || method == CLONE_HANDLE) {
-        buffer_handle_t importedHandle;
-        status_t err = mBufferMapper.importBuffer(handle, width, height,
-                layerCount, format, usage, stride, &importedHandle);
+    if (method == TAKE_UNREGISTERED_HANDLE) {
+        status_t err = mBufferMapper.importBuffer(handle);
         if (err != NO_ERROR) {
+            // clean up cloned handle
+            if (clone) {
+                native_handle_close(clone);
+                native_handle_delete(clone);
+            }
+
             initWithHandle(nullptr, WRAP_HANDLE, 0, 0, 0, 0, 0, 0);
 
             return err;
         }
-
-        if (method == TAKE_UNREGISTERED_HANDLE) {
-            native_handle_close(handle);
-            native_handle_delete(const_cast<native_handle_t*>(handle));
-        }
-
-        handle = importedHandle;
-        mBufferMapper.getTransportSize(handle, &mTransportNumFds, &mTransportNumInts);
     }
-
-    ANativeWindowBuffer::handle = handle;
 
     return NO_ERROR;
 }
@@ -278,14 +285,15 @@ status_t GraphicBuffer::lockAsync(uint32_t inUsage, void** vaddr, int fenceFd)
     return res;
 }
 
+/*
 status_t GraphicBuffer::lockAsync(uint32_t inUsage, const Rect& rect,
         void** vaddr, int fenceFd)
 {
     return lockAsync(inUsage, inUsage, rect, vaddr, fenceFd);
 }
+*/
 
-status_t GraphicBuffer::lockAsync(uint64_t inProducerUsage,
-        uint64_t inConsumerUsage, const Rect& rect, void** vaddr, int fenceFd)
+status_t GraphicBuffer::lockAsync(uint32_t inUsage, const Rect& rect, void** vaddr, int fenceFd)
 {
     if (rect.left < 0 || rect.right  > width ||
         rect.top  < 0 || rect.bottom > height) {
@@ -294,8 +302,7 @@ status_t GraphicBuffer::lockAsync(uint64_t inProducerUsage,
                 width, height);
         return BAD_VALUE;
     }
-    status_t res = getBufferMapper().lockAsync(handle, inProducerUsage,
-            inConsumerUsage, rect, vaddr, fenceFd);
+    status_t res = getBufferMapper().lockAsync(handle, inUsage, rect, vaddr, fenceFd);
     return res;
 }
 
@@ -328,11 +335,11 @@ status_t GraphicBuffer::unlockAsync(int *fenceFd)
 }
 
 size_t GraphicBuffer::getFlattenedSize() const {
-    return static_cast<size_t>(13 + (handle ? mTransportNumInts : 0)) * sizeof(int);
+    return static_cast<size_t>(13 + (handle ? handle->numInts : 0)) * sizeof(int);
 }
 
 size_t GraphicBuffer::getFdCount() const {
-    return static_cast<size_t>(handle ? mTransportNumFds : 0);
+    return static_cast<size_t>(handle ? handle->numFds : 0);
 }
 
 status_t GraphicBuffer::flatten(void*& buffer, size_t& size, int*& fds, size_t& count) const {
@@ -358,18 +365,18 @@ status_t GraphicBuffer::flatten(void*& buffer, size_t& size, int*& fds, size_t& 
     buf[12] = int(usage >> 32); // high 32-bits
 
     if (handle) {
-        buf[10] = int32_t(mTransportNumFds);
-        buf[11] = int32_t(mTransportNumInts);
-        memcpy(fds, handle->data, static_cast<size_t>(mTransportNumFds) * sizeof(int));
+        buf[10] = handle->numFds;
+        buf[11] = handle->numInts;
+        memcpy(fds, handle->data, static_cast<size_t>(handle->numFds) * sizeof(int));
         memcpy(buf + 13, handle->data + handle->numFds,
-                static_cast<size_t>(mTransportNumInts) * sizeof(int));
+                static_cast<size_t>(handle->numInts) * sizeof(int));
     }
 
     buffer = static_cast<void*>(static_cast<uint8_t*>(buffer) + sizeNeeded);
     size -= sizeNeeded;
     if (handle) {
-        fds += mTransportNumFds;
-        count -= static_cast<size_t>(mTransportNumFds);
+        fds += handle->numFds;
+        count -= static_cast<size_t>(handle->numFds);
     }
 
     return NO_ERROR;
@@ -461,9 +468,7 @@ status_t GraphicBuffer::unflatten(
     mOwner = ownHandle;
 
     if (handle != 0) {
-        buffer_handle_t importedHandle;
-        status_t err = mBufferMapper.importBuffer(handle, uint32_t(width), uint32_t(height),
-                uint32_t(layerCount), format, usage, uint32_t(stride), &importedHandle);
+        status_t err = mBufferMapper.importBuffer(handle);
         if (err != NO_ERROR) {
             width = height = stride = format = usage_deprecated = 0;
             layerCount = 0;
@@ -472,11 +477,6 @@ status_t GraphicBuffer::unflatten(
             ALOGE("unflatten: registerBuffer failed: %s (%d)", strerror(-err), err);
             return err;
         }
-
-        native_handle_close(handle);
-        native_handle_delete(const_cast<native_handle_t*>(handle));
-        handle = importedHandle;
-        mBufferMapper.getTransportSize(handle, &mTransportNumFds, &mTransportNumInts);
     }
 
     buffer = static_cast<void const*>(static_cast<uint8_t const*>(buffer) + sizeNeeded);

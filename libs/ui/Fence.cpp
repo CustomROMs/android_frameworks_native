@@ -37,12 +37,18 @@ namespace android {
 
 const sp<Fence> Fence::NO_FENCE = sp<Fence>(new Fence);
 
+Fence::Fence() :
+    mFenceFd(-1) {
+}
+
 Fence::Fence(int fenceFd) :
     mFenceFd(fenceFd) {
 }
 
-Fence::Fence(base::unique_fd fenceFd) :
-    mFenceFd(std::move(fenceFd)) {
+Fence::~Fence() {
+    if (mFenceFd != -1) {
+        close(mFenceFd);
+    }
 }
 
 status_t Fence::wait(int timeout) {
@@ -62,7 +68,7 @@ status_t Fence::waitForever(const char* logname) {
     int warningTimeout = 3000;
     int err = sync_wait(mFenceFd, warningTimeout);
     if (err < 0 && errno == ETIME) {
-        ALOGE("%s: fence %d didn't signal in %u ms", logname, mFenceFd.get(),
+        ALOGE("%s: fence %d didn't signal in %u ms", logname, mFenceFd,
                 warningTimeout);
         err = sync_wait(mFenceFd, TIMEOUT_NEVER);
     }
@@ -88,7 +94,7 @@ sp<Fence> Fence::merge(const char* name, const sp<Fence>& f1,
     if (result == -1) {
         status_t err = -errno;
         ALOGE("merge: sync_merge(\"%s\", %d, %d) returned an error: %s (%d)",
-                name, f1->mFenceFd.get(), f2->mFenceFd.get(),
+                name, f1->mFenceFd, f2->mFenceFd,
                 strerror(-err), err);
         return NO_FENCE;
     }
@@ -111,7 +117,7 @@ nsecs_t Fence::getSignalTime() const {
 
     struct sync_fence_info_data* finfo = sync_fence_info(mFenceFd);
     if (finfo == NULL) {
-        ALOGE("sync_fence_info returned NULL for fd %d", mFenceFd.get());
+        ALOGE("sync_fence_info returned NULL for fd %d", mFenceFd);
         return SIGNAL_TIME_INVALID;
     }
     if (finfo->status != 1) {
@@ -175,7 +181,7 @@ status_t Fence::unflatten(void const*& buffer, size_t& size, int const*& fds, si
     }
 
     if (numFds) {
-        mFenceFd.reset(*fds++);
+        mFenceFd = *fds++;
         count--;
     }
 

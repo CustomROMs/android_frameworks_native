@@ -20,12 +20,11 @@ cc_library_shared {
     },
 
     clang: true,
-    cflags: [
-        "-Wall",
-        "-Werror",
-    ],
+    cflags: ["-DEGL_NEEDS_HANDLE"],
     cppflags: [
         "-Weverything",
+        "-Wno-unused-variable",
+        "-Wno-unused-function",
 
         // The static constructors and destructors in this library have not been noted to
         // introduce significant overheads
@@ -55,7 +54,7 @@ cc_library_shared {
     },
 
     sanitize: {
-        integer_overflow: true,
+        //misc_undefined: ["integer"],
     },
 
     srcs: [
@@ -64,7 +63,6 @@ cc_library_shared {
         "Fence.cpp",
         "FenceTime.cpp",
         "FrameStats.cpp",
-        "Gralloc2.cpp",
         "GraphicBuffer.cpp",
         "GraphicBufferAllocator.cpp",
         "GraphicBufferMapper.cpp",
@@ -109,12 +107,12 @@ cc_library_shared {
     ],
 
     header_libs: [
-        "libbase_headers",
         "libnativebase_headers",
         "libhardware_headers",
-        "libui_headers",
         "libpdx_headers",
     ],
+
+    export_include_dirs: ["include"],
 
     export_static_lib_headers: [
         "libarect",
@@ -122,10 +120,8 @@ cc_library_shared {
     ],
 
     export_header_lib_headers: [
-        "libbase_headers",
         "libnativebase_headers",
         "libhardware_headers",
-        "libui_headers",
     ],
 }
 
@@ -133,14 +129,4 @@ cc_library_headers {
     name: "libui_headers",
     export_include_dirs: ["include"],
     vendor_available: true,
-    target: {
-        vendor: {
-            override_export_include_dirs: ["include_vndk"],
-        },
-    },
 }
-
-subdirs = [
-    "tests",
-    "tools",
-]

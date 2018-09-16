@@ -172,8 +172,10 @@ public:
     status_t lockAsync(uint32_t inUsage, void** vaddr, int fenceFd);
     status_t lockAsync(uint32_t inUsage, const Rect& rect, void** vaddr,
             int fenceFd);
+/*
     status_t lockAsync(uint64_t inProducerUsage, uint64_t inConsumerUsage,
             const Rect& rect, void** vaddr, int fenceFd);
+*/
     status_t lockAsyncYCbCr(uint32_t inUsage, android_ycbcr *ycbcr,
             int fenceFd);
     status_t lockAsyncYCbCr(uint32_t inUsage, const Rect& rect,
