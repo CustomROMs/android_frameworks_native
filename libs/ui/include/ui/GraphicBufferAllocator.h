@@ -32,11 +32,10 @@
 #include <utils/Mutex.h>
 #include <utils/Singleton.h>
 
-namespace android {
+#include <hardware/gralloc.h>
 
-namespace Gralloc2 {
-class Allocator;
-}
+namespace android {
+// ---------------------------------------------------------------------------
 
 class GraphicBufferMapper;
 class String8;
@@ -44,12 +43,29 @@ class String8;
 class GraphicBufferAllocator : public Singleton<GraphicBufferAllocator>
 {
 public:
+    enum {
+        USAGE_SW_READ_NEVER     = GRALLOC_USAGE_SW_READ_NEVER,
+        USAGE_SW_READ_RARELY    = GRALLOC_USAGE_SW_READ_RARELY,
+        USAGE_SW_READ_OFTEN     = GRALLOC_USAGE_SW_READ_OFTEN,
+        USAGE_SW_READ_MASK      = GRALLOC_USAGE_SW_READ_MASK,
+
+        USAGE_SW_WRITE_NEVER    = GRALLOC_USAGE_SW_WRITE_NEVER,
+        USAGE_SW_WRITE_RARELY   = GRALLOC_USAGE_SW_WRITE_RARELY,
+        USAGE_SW_WRITE_OFTEN    = GRALLOC_USAGE_SW_WRITE_OFTEN,
+        USAGE_SW_WRITE_MASK     = GRALLOC_USAGE_SW_WRITE_MASK,
+
+        USAGE_SOFTWARE_MASK     = USAGE_SW_READ_MASK|USAGE_SW_WRITE_MASK,
+
+        USAGE_HW_TEXTURE        = GRALLOC_USAGE_HW_TEXTURE,
+        USAGE_HW_RENDER         = GRALLOC_USAGE_HW_RENDER,
+        USAGE_HW_2D             = GRALLOC_USAGE_HW_2D,
+        USAGE_HW_MASK           = GRALLOC_USAGE_HW_MASK
+    };
+
     static inline GraphicBufferAllocator& get() { return getInstance(); }
 
-    status_t allocate(uint32_t w, uint32_t h, PixelFormat format,
-            uint32_t layerCount, uint64_t usage,
-            buffer_handle_t* handle, uint32_t* stride, uint64_t graphicBufferId,
-            std::string requestorName);
+    status_t alloc(uint32_t w, uint32_t h, PixelFormat format, uint32_t usage,
+            buffer_handle_t* handle, uint32_t* stride);
 
     status_t free(buffer_handle_t handle);
 
@@ -65,7 +81,6 @@ private:
         uint32_t layerCount;
         uint64_t usage;
         size_t size;
-        std::string requestorName;
     };
 
     static Mutex sLock;
@@ -75,8 +90,7 @@ private:
     GraphicBufferAllocator();
     ~GraphicBufferAllocator();
 
-    GraphicBufferMapper& mMapper;
-    const std::unique_ptr<const Gralloc2::Allocator> mAllocator;
+    alloc_device_t  *mAllocDev;
 };
 
 // ---------------------------------------------------------------------------

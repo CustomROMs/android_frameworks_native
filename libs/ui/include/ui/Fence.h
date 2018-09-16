@@ -19,7 +19,6 @@
 
 #include <stdint.h>
 
-#include <android-base/unique_fd.h>
 #include <utils/Flattenable.h>
 #include <utils/RefBase.h>
 #include <utils/Timers.h>
@@ -50,13 +49,12 @@ public:
     // Construct a new Fence object with an invalid file descriptor.  This
     // should be done when the Fence object will be set up by unflattening
     // serialized data.
-    Fence() = default;
+    Fence();
 
     // Construct a new Fence object to manage a given fence file descriptor.
     // When the new Fence object is destructed the file descriptor will be
     // closed.
     explicit Fence(int fenceFd);
-    explicit Fence(base::unique_fd fenceFd);
 
     // Not copyable or movable.
     Fence(const Fence& rhs) = delete;
@@ -138,9 +136,9 @@ public:
 private:
     // Only allow instantiation using ref counting.
     friend class LightRefBase<Fence>;
-    ~Fence() = default;
+    ~Fence();
 
-    base::unique_fd mFenceFd;
+    int mFenceFd;
 };
 
 }; // namespace android

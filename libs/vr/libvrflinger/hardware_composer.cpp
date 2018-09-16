@@ -215,7 +215,7 @@ void HardwareComposer::UpdatePostThreadState(PostThreadStateType state,
 }
 
 void HardwareComposer::CreateComposer() {
-  if (composer_)
+/*  if (composer_)
     return;
   composer_.reset(new Hwc2::impl::Composer("default"));
   composer_callback_ = new ComposerCallback;
@@ -223,6 +223,7 @@ void HardwareComposer::CreateComposer() {
   LOG_ALWAYS_FATAL_IF(!composer_callback_->GotFirstHotplug(),
       "Registered composer callback but didn't get hotplug for primary"
       " display");
+*/
 }
 
 void HardwareComposer::OnPostThreadResumed() {
