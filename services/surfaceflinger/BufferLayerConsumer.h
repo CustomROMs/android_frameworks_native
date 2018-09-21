@@ -96,9 +96,6 @@ public:
     status_t updateTexImage(BufferRejecter* rejecter, const DispSync& dispSync, bool* autoRefresh,
                             bool* queuedBuffer, uint64_t maxFrameNumber);
 
-    // See BufferLayerConsumer::bindTextureImageLocked().
-    status_t bindTextureImage();
-
     // setReleaseFence stores a fence that will signal when the current buffer
     // is no longer being read. This fence will be returned to the producer
     // when the current buffer is released by updateTexImage(). Multiple
@@ -110,7 +107,24 @@ public:
 
     sp<Fence> getPrevFinalReleaseFence() const;
 
-    // See GLConsumer::getTransformMatrix.
+    // getTransformMatrix retrieves the 4x4 texture coordinate transform matrix
+    // associated with the texture image set by the most recent call to
+    // updateTexImage.
+    //
+    // This transform matrix maps 2D homogeneous texture coordinates of the form
+    // (s, t, 0, 1) with s and t in the inclusive range [0, 1] to the texture
+    // coordinate that should be used to sample that location from the texture.
+    // Sampling the texture outside of the range of this transform is undefined.
+    //
+    // This transform is necessary to compensate for transforms that the stream
+    // content producer may implicitly apply to the content. By forcing users of
+    // a BufferLayerConsumer to apply this transform we avoid performing an extra
+    // copy of the data that would be needed to hide the transform from the
+    // user.
+    //
+    // The matrix is stored in column-major order so that it may be passed
+    // directly to OpenGL ES via the glLoadMatrixf or glUniformMatrix4fv
+    // functions.
     void getTransformMatrix(float mtx[16]);
 
     // getTimestamp retrieves the timestamp associated with the texture image

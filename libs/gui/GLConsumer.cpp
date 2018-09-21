@@ -145,7 +145,8 @@ GLConsumer::GLConsumer(const sp<IGraphicBufferConsumer>& bq, uint32_t tex,
     mEglDisplay(EGL_NO_DISPLAY),
     mEglContext(EGL_NO_CONTEXT),
     mCurrentTexture(BufferQueue::INVALID_BUFFER_SLOT),
-    mAttached(true)
+    mAttached(true),
+    mCurrentApi(0)
 {
     GLC_LOGV("GLConsumer");
 
@@ -469,9 +470,11 @@ status_t GLConsumer::updateAndReleaseLocked(const BufferItem& item,
     mCurrentScalingMode = item.mScalingMode;
     mCurrentTimestamp = item.mTimestamp;
     mCurrentDataSpace = item.mDataSpace;
+    mCurrentHdrMetadata = item.mHdrMetadata;
     mCurrentFence = item.mFence;
     mCurrentFenceTime = item.mFenceTime;
     mCurrentFrameNumber = item.mFrameNumber;
+    mCurrentApi = item.mApi;
 
     computeCurrentTransformMatrixLocked();
 

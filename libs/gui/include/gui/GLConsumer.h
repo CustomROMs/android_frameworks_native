@@ -409,10 +409,16 @@ private:
     // gets set each time updateTexImage is called.
     int64_t mCurrentTimestamp;
 
+protected:
     // mCurrentDataSpace is the dataspace for the current texture. It
     // gets set each time updateTexImage is called.
     android_dataspace mCurrentDataSpace;
 
+    // mCurrentHdrMetadata is the HDR metadata for the current texture. It
+    // gets set each time updateTexImage is called.
+    HdrMetadata mCurrentHdrMetadata;
+
+private:
     // mCurrentFrameNumber is the frame counter for the current texture.
     // It gets set each time updateTexImage is called.
     uint64_t mCurrentFrameNumber;
@@ -496,6 +502,10 @@ private:
     // attachToContext.
     bool mAttached;
 
+protected:
+    int mCurrentApi;
+
+private:
     // protects static initialization
     static Mutex sStaticInitLock;
 
