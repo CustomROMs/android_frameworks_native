@@ -100,6 +100,10 @@ cc_library_shared {
         "liblog",
     ],
 
+    export_shared_lib_headers: [
+        "android.hardware.graphics.common@1.2",
+    ],
+
     static_libs: [
         "libarect",
         "libgrallocusage",
