@@ -17,6 +17,7 @@
 #pragma once
 
 #include <android/hardware/graphics/common/1.1/types.h>
+#include <android/hardware/graphics/common/1.2/types.h>
 #include <system/graphics.h>
 
 #define ANDROID_PHYSICAL_DISPLAY_ID_FORMAT PRIu64
@@ -30,10 +31,10 @@ using PhysicalDisplayId = uint64_t;
 namespace ui {
 
 using android::hardware::graphics::common::V1_0::Hdr;
-using android::hardware::graphics::common::V1_1::ColorMode;
-using android::hardware::graphics::common::V1_1::Dataspace;
 using android::hardware::graphics::common::V1_1::PixelFormat;
 using android::hardware::graphics::common::V1_1::RenderIntent;
+using android::hardware::graphics::common::V1_2::ColorMode;
+using android::hardware::graphics::common::V1_2::Dataspace;
 
 }  // namespace ui
 }  // namespace android
