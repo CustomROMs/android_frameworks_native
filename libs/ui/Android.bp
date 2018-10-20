@@ -74,6 +74,7 @@ cc_library_shared {
         "PixelFormat.cpp",
         "Rect.cpp",
         "Region.cpp",
+        "Size.cpp",
         "UiConfig.cpp",
     ],
 
