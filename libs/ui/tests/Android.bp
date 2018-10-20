@@ -34,3 +34,10 @@ cc_test {
     srcs: ["GraphicBuffer_test.cpp"],
     cflags: ["-Wall", "-Werror"],
 }
+
+cc_test {
+    name: "Size_test",
+    shared_libs: ["libui"],
+    srcs: ["Size_test.cpp"],
+    cflags: ["-Wall", "-Werror"],
+}
