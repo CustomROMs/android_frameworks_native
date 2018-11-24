@@ -152,5 +152,3 @@ cc_library_shared {
         "include",
     ],
 }
-
-subdirs = ["tests"]
