@@ -170,6 +170,10 @@ public:
             gralloc1_consumer_usage_t consumerUsage,
             const gralloc1_rect_t* accessRegion, struct android_ycbcr* outData,
             const sp<Fence>& acquireFence);
+#if 1
+    gralloc1_error_t getphys(buffer_handle_t buffer,
+            void **paddr);
+#endif
 
     gralloc1_error_t unlock(buffer_handle_t buffer, sp<Fence>* outFence);
 
@@ -265,6 +269,10 @@ private:
                 GRALLOC1_FUNCTION_LOCK_YCBCR> lockYCbCr;
         FunctionLoader<GRALLOC1_PFN_UNLOCK,
                 GRALLOC1_FUNCTION_UNLOCK> unlock;
+#if 1
+        FunctionLoader<GRALLOC1_PFN_GETPHYS,
+                GRALLOC1_FUNCTION_GETPHYS> getphys;
+#endif
 
         // Adapter-only functions
         FunctionLoader<GRALLOC1_PFN_RETAIN_GRAPHIC_BUFFER,
