@@ -51,7 +51,6 @@ extern "C" {
 #ifndef GL_VERSION_ES_CM_1_0
 #define GL_VERSION_ES_CM_1_0 1
 typedef void GLvoid;
-typedef char GLchar;
 typedef unsigned int GLenum;
 #include <KHR/khrplatform.h>
 typedef khronos_float_t GLfloat;

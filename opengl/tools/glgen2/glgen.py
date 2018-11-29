@@ -117,8 +117,6 @@ class TrampolineGen(reg.OutputGenerator):
         reg.OutputGenerator.__init__(self, sys.stderr, sys.stderr, None)
 
     def genCmd(self, cmd, name):
-        if re.search('Win32', name):
-            return
         reg.OutputGenerator.genCmd(self, cmd, name)
 
         rtype, fname = parseProto(cmd.elem.find('proto'))
@@ -144,8 +142,6 @@ class ApiGenerator(reg.OutputGenerator):
         self.enums = collections.OrderedDict()
 
     def genCmd(self, cmd, name):
-        if re.search('Win32', name):
-            return
         reg.OutputGenerator.genCmd(self, cmd, name)
         rtype, fname = parseProto(cmd.elem.find('proto'))
         params = [parseParam(p) for p in cmd.elem.findall('param')]
@@ -169,8 +165,6 @@ class ApiGenerator(reg.OutputGenerator):
         # to get the information out though, and it's not critical right now,
         # so leaving for later.
         if re.search('_BIT($|\d*_)', name):
-            return
-        if re.search('D3D|WIN32', name):
             return
 
         # Skip non-hex values (GL_TRUE, GL_FALSE, header guard junk)

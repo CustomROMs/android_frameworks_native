@@ -356,6 +356,10 @@ int createTextureSurface(ogles_context_t* c,
         GLenum format, GLenum type, GLsizei width, GLsizei height,
         GLenum compressedFormat = 0)
 {
+    // find out which texture is bound to the current unit
+    const int active = c->textures.active;
+    const GLuint name = c->textures.tmu[active].name;
+
     // convert the pixelformat to one we can handle
     const int32_t formatIdx = convertGLPixelFormat(format, type);
     if (formatIdx == 0) { // we don't know what to do with this
@@ -1188,6 +1192,7 @@ void glTexImage2D(
         const GGLFormat& pixelFormat(c->rasterizer.formats[formatIdx]);
         const int32_t align = c->textures.unpackAlignment-1;
         const int32_t bpr = ((width * pixelFormat.size) + align) & ~align;
+        const size_t size = bpr * height;
         const int32_t stride = bpr / pixelFormat.size;
 
         GGLSurface userSurface;
@@ -1271,6 +1276,7 @@ void glTexSubImage2D(
     const GGLFormat& pixelFormat(c->rasterizer.formats[formatIdx]);
     const int32_t align = c->textures.unpackAlignment-1;
     const int32_t bpr = ((width * pixelFormat.size) + align) & ~align;
+    const size_t size = bpr * height;
     const int32_t stride = bpr / pixelFormat.size;
     GGLSurface userSurface;
     userSurface.version = sizeof(userSurface);

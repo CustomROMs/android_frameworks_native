@@ -81,9 +81,7 @@ namespace android {
 
 const unsigned int NUM_DISPLAYS = 1;
 
-#ifndef __ANDROID__
 static pthread_mutex_t gInitMutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
 static pthread_mutex_t gErrorKeyMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_key_t gEGLErrorKey = -1;
 #ifndef __ANDROID__
@@ -1716,10 +1714,40 @@ EGLBoolean eglQuerySurface( EGLDisplay dpy, EGLSurface eglSurface,
 }
 
 EGLContext eglCreateContext(EGLDisplay dpy, EGLConfig config,
-                            EGLContext /*share_list*/, const EGLint* /*attrib_list*/)
+                            EGLContext /*share_list*/, const EGLint* attrib_list)
 {
     if (egl_display_t::is_valid(dpy) == EGL_FALSE)
         return setError(EGL_BAD_DISPLAY, EGL_NO_SURFACE);
+
+    EGLint renderType = 0;
+    if (getConfigAttrib(dpy, config, EGL_RENDERABLE_TYPE, &renderType) == EGL_FALSE) {
+        return setError(EGL_BAD_CONFIG, EGL_NO_SURFACE);
+    }
+
+    EGLint major = 1;
+    if (attrib_list != NULL) {
+        for (EGLint i=0; attrib_list[i]!= EGL_NONE; i+=2) {
+            if (attrib_list[i] == EGL_CONTEXT_CLIENT_VERSION) {
+                major = attrib_list[i+1];
+                break;
+            }
+        }
+    }
+
+    switch (major) {
+        case 1:
+            if (!(renderType & EGL_OPENGL_ES_BIT)) {
+                return setError(EGL_BAD_MATCH, EGL_NO_SURFACE);
+            }
+            break;
+        case 2:
+            if (!(renderType & EGL_OPENGL_ES2_BIT)) {
+                return setError(EGL_BAD_MATCH, EGL_NO_SURFACE);
+            }
+            break;
+        default:
+            return setError(EGL_BAD_MATCH, EGL_NO_SURFACE);
+    }
 
     ogles_context_t* gl = ogles_init(sizeof(egl_context_t));
     if (!gl) return setError(EGL_BAD_ALLOC, EGL_NO_CONTEXT);
@@ -1778,6 +1806,7 @@ EGLBoolean eglMakeCurrent(  EGLDisplay dpy, EGLSurface draw,
         // if we're detaching, we need the current context
         current_ctx = (EGLContext)getGlThreadSpecific();
     } else {
+        egl_context_t* c = egl_context_t::context(ctx);
         egl_surface_t* d = (egl_surface_t*)draw;
         egl_surface_t* r = (egl_surface_t*)read;
         if ((d && d->ctx && d->ctx != ctx) ||
