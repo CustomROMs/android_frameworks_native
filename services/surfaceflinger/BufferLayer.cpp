@@ -63,7 +63,7 @@ BufferLayer::BufferLayer(SurfaceFlinger* flinger, const sp<Client>& client, cons
         mRefreshPending(false) {
     ALOGV("Creating Layer %s", name.string());
 
-    mTextureName = mFlinger->getNewTexture();
+    mFlinger->getRenderEngine().genTextures(1, &mTextureName);
     mTexture.init(Texture::TEXTURE_EXTERNAL, mTextureName);
 
     if (flags & ISurfaceComposerClient::eNonPremultiplied) mPremultipliedAlpha = false;
@@ -706,12 +706,8 @@ void BufferLayer::onFirstRef() {
     sp<IGraphicBufferConsumer> consumer;
     BufferQueue::createBufferQueue(&producer, &consumer, true);
     mProducer = new MonitoredProducer(producer, mFlinger, this);
-    {
-        // Grab the SF state lock during this since it's the only safe way to access RenderEngine
-        Mutex::Autolock lock(mFlinger->mStateLock);
-        mConsumer = new BufferLayerConsumer(consumer, mFlinger->getRenderEngine(), mTextureName,
-                                            this);
-    }
+    mConsumer = new BufferLayerConsumer(consumer,
+            mFlinger->getRenderEngine(), mTextureName, this);
     mConsumer->setConsumerUsageBits(getEffectiveUsage(0));
     mConsumer->setContentsChangedListener(this);
     mConsumer->setName(mName);
