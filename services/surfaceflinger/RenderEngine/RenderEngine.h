@@ -99,8 +99,10 @@ public:
     virtual void bindExternalTextureImage(uint32_t texName, const RE::Image& image) = 0;
     virtual void readPixels(size_t l, size_t b, size_t w, size_t h, uint32_t* pixels) = 0;
     virtual void bindNativeBufferAsFrameBuffer(ANativeWindowBuffer* buffer,
-                                               RE::BindNativeBufferAsFramebuffer* bindHelper) = 0;
-    virtual void unbindNativeBufferAsFrameBuffer(RE::BindNativeBufferAsFramebuffer* bindHelper) = 0;
+                                               RE::BindNativeBufferAsFramebuffer* bindHelper,
+                                               bool useReadPixels, int reqWidth, int reqHeight) = 0;
+    virtual void unbindNativeBufferAsFrameBuffer(RE::BindNativeBufferAsFramebuffer* bindHelper,
+                                                 bool useReadPixels) = 0;
 
     // set-up
     virtual void checkErrors() const;
@@ -133,11 +135,12 @@ public:
 
 class BindNativeBufferAsFramebuffer {
 public:
-    BindNativeBufferAsFramebuffer(RenderEngine& engine, ANativeWindowBuffer* buffer)
-          : mEngine(engine) {
-        mEngine.bindNativeBufferAsFrameBuffer(buffer, this);
+    BindNativeBufferAsFramebuffer(RenderEngine& engine, ANativeWindowBuffer* buffer,
+        bool useReadPixels, int reqWidth, int reqHeight)
+          : mEngine(engine), mUseReadPixels(useReadPixels) {
+        mEngine.bindNativeBufferAsFrameBuffer(buffer, this, useReadPixels, reqWidth, reqHeight);
     }
-    ~BindNativeBufferAsFramebuffer() { mEngine.unbindNativeBufferAsFrameBuffer(this); }
+    ~BindNativeBufferAsFramebuffer() { mEngine.unbindNativeBufferAsFrameBuffer(this, mUseReadPixels); }
     status_t getStatus() const { return mStatus; }
 
 protected:
@@ -147,6 +150,7 @@ protected:
     EGLImageKHR mImage;
     uint32_t mTexName, mFbName;
     status_t mStatus;
+    bool mUseReadPixels;
 };
 
 namespace impl {
@@ -237,13 +241,16 @@ public:
     void bindExternalTextureImage(uint32_t texName, const RE::impl::Image& image);
 
     void bindNativeBufferAsFrameBuffer(ANativeWindowBuffer* buffer,
-                                       RE::BindNativeBufferAsFramebuffer* bindHelper) override;
-    void unbindNativeBufferAsFrameBuffer(RE::BindNativeBufferAsFramebuffer* bindHelper) override;
+                                       RE::BindNativeBufferAsFramebuffer* bindHelper, 
+                                       bool useReadPixels, int reqWidth, int reqHeight) override;
+    void unbindNativeBufferAsFrameBuffer(RE::BindNativeBufferAsFramebuffer* bindHelper,
+                                         bool useReadPixels) override;
 
     // Overriden by each specialization
     virtual void bindImageAsFramebuffer(EGLImageKHR image, uint32_t* texName, uint32_t* fbName,
-                                        uint32_t* status) = 0;
-    virtual void unbindFramebuffer(uint32_t texName, uint32_t fbName) = 0;
+                                        uint32_t* status, bool useReadPixels, int reqWidth,
+                                        int reqHeight) = 0;
+    virtual void unbindFramebuffer(uint32_t texName, uint32_t fbName, bool useReadPixels) = 0;
 };
 
 } // namespace impl
