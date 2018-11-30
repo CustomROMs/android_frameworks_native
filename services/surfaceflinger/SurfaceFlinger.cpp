@@ -5172,7 +5172,8 @@ status_t SurfaceFlinger::captureScreenImplLocked(const RenderArea& renderArea,
 
     // this binds the given EGLImage as a framebuffer for the
     // duration of this scope.
-    RE::BindNativeBufferAsFramebuffer bufferBond(getRenderEngine(), buffer);
+    RE::BindNativeBufferAsFramebuffer bufferBond(getRenderEngine(), buffer,
+        true, renderArea.getReqWidth(), renderArea.getReqHeight());
     if (bufferBond.getStatus() != NO_ERROR) {
         ALOGE("got ANWB binding error while taking screenshot");
         return INVALID_OPERATION;
@@ -5183,6 +5184,14 @@ status_t SurfaceFlinger::captureScreenImplLocked(const RenderArea& renderArea,
     // an EGLSurface and therefore we're not
     // dependent on the context's EGLConfig.
     renderScreenImplLocked(renderArea, traverseLayers, true, useIdentityTransform);
+
+    sp<GraphicBuffer> buf = static_cast<GraphicBuffer*>(buffer);
+    void* vaddr;
+    if (buf->lock(GRALLOC_USAGE_SW_WRITE_OFTEN, &vaddr) == NO_ERROR) {
+        getRenderEngine().readPixels(0, 0, buffer->stride, renderArea.getReqHeight(),
+                (uint32_t *)vaddr);
+        buf->unlock();
+    }
 
     if (DEBUG_SCREENSHOTS) {
         getRenderEngine().finish();

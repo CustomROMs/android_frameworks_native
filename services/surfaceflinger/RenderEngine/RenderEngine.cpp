@@ -404,7 +404,8 @@ void RenderEngine::dump(String8& result) {
 // ---------------------------------------------------------------------------
 
 void RenderEngine::bindNativeBufferAsFrameBuffer(ANativeWindowBuffer* buffer,
-                                                 RE::BindNativeBufferAsFramebuffer* bindHelper) {
+                                                 RE::BindNativeBufferAsFramebuffer* bindHelper,
+                                                 bool useReadPixels, int reqWidth, int reqHeight) {
     bindHelper->mImage = eglCreateImageKHR(mEGLDisplay, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
                                            buffer, nullptr);
     if (bindHelper->mImage == EGL_NO_IMAGE_KHR) {
@@ -414,7 +415,7 @@ void RenderEngine::bindNativeBufferAsFrameBuffer(ANativeWindowBuffer* buffer,
 
     uint32_t glStatus;
     bindImageAsFramebuffer(bindHelper->mImage, &bindHelper->mTexName, &bindHelper->mFbName,
-                           &glStatus);
+                           &glStatus, useReadPixels, reqWidth, reqHeight);
 
     ALOGE_IF(glStatus != GL_FRAMEBUFFER_COMPLETE_OES, "glCheckFramebufferStatusOES error %d",
              glStatus);
@@ -422,13 +423,14 @@ void RenderEngine::bindNativeBufferAsFrameBuffer(ANativeWindowBuffer* buffer,
     bindHelper->mStatus = glStatus == GL_FRAMEBUFFER_COMPLETE_OES ? NO_ERROR : BAD_VALUE;
 }
 
-void RenderEngine::unbindNativeBufferAsFrameBuffer(RE::BindNativeBufferAsFramebuffer* bindHelper) {
+void RenderEngine::unbindNativeBufferAsFrameBuffer(RE::BindNativeBufferAsFramebuffer* bindHelper,
+                                                   bool useReadPixels) {
     if (bindHelper->mImage == EGL_NO_IMAGE_KHR) {
         return;
     }
 
     // back to main framebuffer
-    unbindFramebuffer(bindHelper->mTexName, bindHelper->mFbName);
+    unbindFramebuffer(bindHelper->mTexName, bindHelper->mFbName, useReadPixels);
     eglDestroyImageKHR(mEGLDisplay, bindHelper->mImage);
 
     // Workaround for b/77935566 to force the EGL driver to release the
