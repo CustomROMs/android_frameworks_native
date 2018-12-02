@@ -222,5 +222,4 @@ cc_library_shared {
 subdirs = [
     "layerproto",
     "TimeStats/timestatsproto",
-    "tests",
 ]

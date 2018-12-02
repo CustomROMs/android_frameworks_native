@@ -22,6 +22,7 @@
 
 #include <gui/BufferQueueDefs.h>
 #include <gui/ConsumerBase.h>
+#include <gui/HdrMetadata.h>
 
 #include <ui/FenceTime.h>
 #include <ui/GraphicBuffer.h>
