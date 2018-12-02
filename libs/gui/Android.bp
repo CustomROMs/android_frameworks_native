@@ -27,7 +27,7 @@ cc_library_shared {
     clang: true,
     cflags: [
         "-Wall",
-        "-Werror",
+        "-Wno-format",
     ],
     cppflags: [
         "-Weverything",
@@ -182,5 +182,3 @@ cc_library_shared {
         "include",
     ],
 }
-
-subdirs = ["tests"]
