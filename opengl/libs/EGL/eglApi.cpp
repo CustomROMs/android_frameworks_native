@@ -746,7 +746,7 @@ EGLSurface eglCreateWindowSurface(  EGLDisplay dpy, EGLConfig config,
         anw->setSwapInterval(anw, 1);
 
         EGLSurface surface = cnx->egl.eglCreateWindowSurface(
-                iDpy, config, window, attrib_list);
+                iDpy, config, window, NULL);
         if (surface != EGL_NO_SURFACE) {
             egl_surface_t* s =
                     new egl_surface_t(dp.get(), config, window, surface, colorSpace, cnx);
