@@ -1714,10 +1714,40 @@ EGLBoolean eglQuerySurface( EGLDisplay dpy, EGLSurface eglSurface,
 }
 
 EGLContext eglCreateContext(EGLDisplay dpy, EGLConfig config,
-                            EGLContext /*share_list*/, const EGLint* /*attrib_list*/)
+                            EGLContext /*share_list*/, const EGLint* attrib_list)
 {
     if (egl_display_t::is_valid(dpy) == EGL_FALSE)
         return setError(EGL_BAD_DISPLAY, EGL_NO_SURFACE);
+
+    EGLint renderType = 0;
+    if (getConfigAttrib(dpy, config, EGL_RENDERABLE_TYPE, &renderType) == EGL_FALSE) {
+        return setError(EGL_BAD_CONFIG, EGL_NO_SURFACE);
+    }
+
+    EGLint major = 1;
+    if (attrib_list != NULL) {
+        for (EGLint i=0; attrib_list[i]!= EGL_NONE; i+=2) {
+            if (attrib_list[i] == EGL_CONTEXT_CLIENT_VERSION) {
+                major = attrib_list[i+1];
+                break;
+            }
+        }
+    }
+
+    switch (major) {
+        case 1:
+            if (!(renderType & EGL_OPENGL_ES_BIT)) {
+                return setError(EGL_BAD_MATCH, EGL_NO_SURFACE);
+            }
+            break;
+        case 2:
+            if (!(renderType & EGL_OPENGL_ES2_BIT)) {
+                return setError(EGL_BAD_MATCH, EGL_NO_SURFACE);
+            }
+            break;
+        default:
+            return setError(EGL_BAD_MATCH, EGL_NO_SURFACE);
+    }
 
     ogles_context_t* gl = ogles_init(sizeof(egl_context_t));
     if (!gl) return setError(EGL_BAD_ALLOC, EGL_NO_CONTEXT);
