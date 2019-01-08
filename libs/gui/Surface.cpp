@@ -24,6 +24,13 @@
 
 #include <android/native_window.h>
 
+// We would eliminate the non-conforming zero-length array, but we can't since
+// this is effectively included from the Linux kernel
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wzero-length-array"
+#include <sync/sync.h>
+#pragma clang diagnostic pop
+
 #include <utils/Log.h>
 #include <utils/Trace.h>
 #include <utils/NativeHandle.h>
@@ -1542,8 +1549,7 @@ void Surface::setSurfaceDamage(android_native_rect_t* rects, size_t numRects) {
 static status_t copyBlt(
         const sp<GraphicBuffer>& dst,
         const sp<GraphicBuffer>& src,
-        const Region& reg,
-        int *dstFenceFd)
+        const Region& reg)
 {
     if (dst->getId() == src->getId())
         return OK;
@@ -1557,10 +1563,9 @@ static status_t copyBlt(
     ALOGE_IF(err, "error locking src buffer %s", strerror(-err));
 
     uint8_t* dst_bits = NULL;
-    err = dst->lockAsync(GRALLOC_USAGE_SW_WRITE_OFTEN, reg.bounds(),
-            reinterpret_cast<void**>(&dst_bits), *dstFenceFd);
+    err = dst->lock(GRALLOC_USAGE_SW_WRITE_OFTEN, reg.bounds(),
+            reinterpret_cast<void**>(&dst_bits));
     ALOGE_IF(err, "error locking dst buffer %s", strerror(-err));
-    *dstFenceFd = -1;
 
     Region::const_iterator head(reg.begin());
     Region::const_iterator tail(reg.end());
@@ -1594,7 +1599,7 @@ static status_t copyBlt(
         src->unlock();
 
     if (dst_bits)
-        dst->unlockAsync(dstFenceFd);
+        dst->unlock();
 
     return err;
 }
@@ -1645,7 +1650,12 @@ status_t Surface::lock(
             // copy the area that is invalid and not repainted this round
             const Region copyback(mDirtyRegion.subtract(newDirtyRegion));
             if (!copyback.isEmpty()) {
-                copyBlt(backBuffer, frontBuffer, copyback, &fenceFd);
+                if (fenceFd >= 0) {
+                    sync_wait(fenceFd, -1);
+                    close(fenceFd);
+                    fenceFd = -1;
+                }
+                copyBlt(backBuffer, frontBuffer, copyback);
             }
         } else {
             // if we can't copy-back anything, modify the user's dirty
