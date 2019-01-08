@@ -395,8 +395,6 @@ void DispSync::init(bool hasSyncFramework, int64_t dispSyncPresentTimeOffset) {
         ALOGE("Couldn't set SCHED_FIFO for DispSyncThread");
     }
 
-    android_set_rt_ioprio(mThread->getTid(), 1);
-
     reset();
     beginResync();
 

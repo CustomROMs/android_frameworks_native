@@ -66,9 +66,6 @@ status_t InputManager::start() {
         return result;
     }
 
-    android_set_rt_ioprio(mDispatcherThread->getTid(), 1);
-    android_set_rt_ioprio(mReaderThread->getTid(), 1);
-
     return OK;
 }
 

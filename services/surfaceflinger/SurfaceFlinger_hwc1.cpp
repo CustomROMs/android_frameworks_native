@@ -591,7 +591,6 @@ void SurfaceFlinger::init() {
 
     mEventControlThread = new EventControlThread(this);
     mEventControlThread->run("EventControl", PRIORITY_REALTIME);
-    android_set_rt_ioprio(mEventControlThread->getTid(), 1);
 
     // set a fake vsync period if there is no HWComposer
     if (mHwc->initCheck() != NO_ERROR) {
