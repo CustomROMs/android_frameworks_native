@@ -3952,6 +3952,11 @@ status_t SurfaceFlinger::captureScreenImplLocked(
 {
     ATRACE_CALL();
 
+// Rotation artifact problems when useReadPixels is false
+#ifdef STE_HARDWARE
+    useReadPixels = true;
+#endif
+
     // get screen geometry
     uint32_t hw_w = hw->getWidth();
     uint32_t hw_h = hw->getHeight();
