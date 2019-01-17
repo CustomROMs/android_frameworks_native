@@ -20,7 +20,7 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
-#include "FileBlobCache.h"
+#include "BlobCache.h"
 
 #include <memory>
 #include <mutex>
@@ -82,6 +82,14 @@ private:
     // possible.
     BlobCache* getBlobCacheLocked();
 
+    // saveBlobCache attempts to save the current contents of mBlobCache to
+    // disk.
+    void saveBlobCacheLocked();
+
+    // loadBlobCache attempts to load the saved cache contents from disk into
+    // mBlobCache.
+    void loadBlobCacheLocked();
+
     // mInitialized indicates whether the egl_cache_t is in the initialized
     // state.  It is initialized to false at construction time, and gets set to
     // true when initialize is called.  It is set back to false when terminate
@@ -93,7 +101,7 @@ private:
     // mBlobCache is the cache in which the key/value blob pairs are stored.  It
     // is initially NULL, and will be initialized by getBlobCacheLocked the
     // first time it's needed.
-    std::unique_ptr<FileBlobCache> mBlobCache;
+    std::unique_ptr<BlobCache> mBlobCache;
 
     // mFilename is the name of the file for storing cache contents in between
     // program invocations.  It is initialized to an empty string at

@@ -62,10 +62,19 @@ WindowSurface::WindowSurface() {
         return;
     }
 
-    SurfaceComposerClient::Transaction{}
-            .setLayer(sc, 0x7FFFFFFF)
-            .show(sc)
-            .apply();
+    SurfaceComposerClient::openGlobalTransaction();
+    err = sc->setLayer(0x7FFFFFFF);     // always on top
+    if (err != NO_ERROR) {
+        fprintf(stderr, "SurfaceComposer::setLayer error: %#x\n", err);
+        return;
+    }
+
+    err = sc->show();
+    if (err != NO_ERROR) {
+        fprintf(stderr, "SurfaceComposer::show error: %#x\n", err);
+        return;
+    }
+    SurfaceComposerClient::closeGlobalTransaction();
 
     mSurfaceControl = sc;
 }
