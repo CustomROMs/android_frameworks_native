@@ -22,6 +22,7 @@ cc_library_shared {
     clang: true,
     cppflags: [
         "-Weverything",
+        "-Werror",
 
         // The static constructors and destructors in this library have not been noted to
         // introduce significant overheads
@@ -52,6 +53,7 @@ cc_library_shared {
         "Fence.cpp",
         "FenceTime.cpp",
         "FrameStats.cpp",
+        "Gralloc2.cpp",
         "GraphicBuffer.cpp",
         "GraphicBufferAllocator.cpp",
         "GraphicBufferMapper.cpp",

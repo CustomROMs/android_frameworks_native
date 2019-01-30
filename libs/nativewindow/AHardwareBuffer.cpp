@@ -127,7 +127,7 @@ int AHardwareBuffer_lock(AHardwareBuffer* buffer, uint64_t usage,
     } else {
         bounds.set(Rect(rect->left, rect->top, rect->right, rect->bottom));
     }
-    return gBuffer->lockAsync(usage, bounds, outVirtualAddress, fence);
+    return gBuffer->lockAsync(usage, usage, bounds, outVirtualAddress, fence);
 }
 
 int AHardwareBuffer_unlock(AHardwareBuffer* buffer, int32_t* fence) {

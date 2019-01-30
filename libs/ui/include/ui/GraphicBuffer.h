@@ -171,10 +171,8 @@ public:
     status_t lockAsync(uint32_t inUsage, void** vaddr, int fenceFd);
     status_t lockAsync(uint32_t inUsage, const Rect& rect, void** vaddr,
             int fenceFd);
-/*
     status_t lockAsync(uint64_t inProducerUsage, uint64_t inConsumerUsage,
             const Rect& rect, void** vaddr, int fenceFd);
-*/
     status_t lockAsyncYCbCr(uint32_t inUsage, android_ycbcr *ycbcr,
             int fenceFd);
     status_t lockAsyncYCbCr(uint32_t inUsage, const Rect& rect,
@@ -220,7 +218,7 @@ private:
 
     status_t initWithSize(uint32_t inWidth, uint32_t inHeight,
             PixelFormat inFormat, uint32_t inLayerCount,
-            uint32_t inUsage);
+            uint64_t inUsage, std::string requestorName);
 
     status_t initWithHandle(const native_handle_t* handle,
             HandleWrapMethod method, uint32_t width, uint32_t height,
