@@ -3,6 +3,7 @@ cc_defaults {
 
     cflags: [
         "-Wall",
+        "-Werror",
     ],
     srcs: [
         "CacheItem.cpp",
