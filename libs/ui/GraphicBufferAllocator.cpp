@@ -29,6 +29,7 @@
 #include <utils/String8.h>
 #include <utils/Trace.h>
 
+#include <ui/Gralloc2.h>
 #include <ui/GraphicBufferMapper.h>
 
 namespace android {
@@ -41,20 +42,13 @@ KeyedVector<buffer_handle_t,
     GraphicBufferAllocator::alloc_rec_t> GraphicBufferAllocator::sAllocList;
 
 GraphicBufferAllocator::GraphicBufferAllocator()
-    : mAllocDev(0)
+  : mMapper(GraphicBufferMapper::getInstance()),
+    mAllocator(std::make_unique<Gralloc2::Allocator>(
+                mMapper.getGrallocMapper()))
 {
-    hw_module_t const* module;
-    int err = hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &module);
-    ALOGE_IF(err, "FATAL: can't find the %s module", GRALLOC_HARDWARE_MODULE_ID);
-    if (err == 0) {
-        gralloc_open(module, &mAllocDev);
-    }
 }
 
-GraphicBufferAllocator::~GraphicBufferAllocator()
-{
-    gralloc_close(mAllocDev);
-}
+GraphicBufferAllocator::~GraphicBufferAllocator() {}
 
 void GraphicBufferAllocator::dump(String8& result) const
 {
@@ -87,10 +81,8 @@ void GraphicBufferAllocator::dump(String8& result) const
     snprintf(buffer, SIZE, "Total allocated (estimate): %.2f KB\n", total/1024.0);
     result.append(buffer);
 
-    if (mAllocDev->common.version >= 1 && mAllocDev->dump) {
-        mAllocDev->dump(mAllocDev, buffer, SIZE);
-        result.append(buffer);
-    }
+    std::string deviceDump = mAllocator->dumpDebugInfo();
+    result.append(deviceDump.c_str(), deviceDump.size());
 }
 
 void GraphicBufferAllocator::dumpToSystemLog()
@@ -112,22 +104,19 @@ status_t GraphicBufferAllocator::allocate(uint32_t width, uint32_t height,
     if (!width || !height)
         width = height = 1;
 
-    // we have a h/w allocator and h/w buffer is requested
-    status_t err;
+    // Ensure that layerCount is valid.
+    if (layerCount < 1)
+        layerCount = 1;
 
-    // Filter out any usage bits that should not be passed to the gralloc module
-    usage &= GRALLOC_USAGE_ALLOC_MASK;
+    Gralloc2::IMapper::BufferDescriptorInfo info = {};
+    info.width = width;
+    info.height = height;
+    info.layerCount = layerCount;
+    info.format = static_cast<Gralloc2::PixelFormat>(format);
+    info.usage = usage;
 
-    int outStride = 0;
-    err = mAllocDev->alloc(mAllocDev, static_cast<int>(width),
-            static_cast<int>(height), format, static_cast<int>(usage), handle,
-            &outStride);
-    *stride = static_cast<uint32_t>(outStride);
-
-    ALOGW_IF(err, "alloc(%u, %u, %d, %llx, ...) failed %d (%s)",
-            width, height, format, usage, err, strerror(-err));
-
-    if (err == NO_ERROR) {
+    Gralloc2::Error error = mAllocator->allocate(info, stride, handle);
+    if (error == Gralloc2::Error::NONE) {
         Mutex::Autolock _l(sLock);
         KeyedVector<buffer_handle_t, alloc_rec_t>& list(sAllocList);
         uint32_t bpp = bytesPerPixel(format);
@@ -141,26 +130,30 @@ status_t GraphicBufferAllocator::allocate(uint32_t width, uint32_t height,
         rec.size = static_cast<size_t>(height * (*stride) * bpp);
         rec.requestorName = std::move(requestorName);
         list.add(*handle, rec);
-    }
 
-    return err;
+        return NO_ERROR;
+    } else {
+        ALOGE("Failed to allocate (%u x %u) layerCount %u format %d "
+                "usage %" PRIx64 ": %d",
+                width, height, layerCount, format, usage,
+                error);
+        return NO_MEMORY;
+    }
 }
 
 status_t GraphicBufferAllocator::free(buffer_handle_t handle)
 {
     ATRACE_CALL();
-    status_t err;
 
-    err = mAllocDev->free(mAllocDev, handle);
+    // We allocated a buffer from the allocator and imported it into the
+    // mapper to get the handle.  We just need to free the handle now.
+    mMapper.freeBuffer(handle);
 
-    ALOGW_IF(err, "free(...) failed %d (%s)", err, strerror(-err));
-    if (err == NO_ERROR) {
-        Mutex::Autolock _l(sLock);
-        KeyedVector<buffer_handle_t, alloc_rec_t>& list(sAllocList);
-        list.removeItem(handle);
-    }
+    Mutex::Autolock _l(sLock);
+    KeyedVector<buffer_handle_t, alloc_rec_t>& list(sAllocList);
+    list.removeItem(handle);
 
-    return err;
+    return NO_ERROR;
 }
 
 // ---------------------------------------------------------------------------

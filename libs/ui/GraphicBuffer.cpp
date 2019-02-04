@@ -103,9 +103,7 @@ GraphicBuffer::~GraphicBuffer()
 void GraphicBuffer::free_handle()
 {
     if (mOwner == ownHandle) {
-        mBufferMapper.unregisterBuffer(handle);
-        native_handle_close(handle);
-        native_handle_delete(const_cast<native_handle*>(handle));
+        mBufferMapper.freeBuffer(handle);
     } else if (mOwner == ownData) {
         GraphicBufferAllocator& allocator(GraphicBufferAllocator::get());
         allocator.free(handle);
@@ -190,18 +188,6 @@ status_t GraphicBuffer::initWithHandle(const native_handle_t* handle,
         PixelFormat format, uint32_t layerCount, uint64_t usage,
         uint32_t stride)
 {
-    native_handle_t* clone = nullptr;
-
-    if (method == CLONE_HANDLE) {
-        clone = native_handle_clone(handle);
-        if (!clone) {
-            return NO_MEMORY;
-        }
-
-        handle = clone;
-        method = TAKE_UNREGISTERED_HANDLE;
-    }
-
     ANativeWindowBuffer::width  = static_cast<int>(width);
     ANativeWindowBuffer::height = static_cast<int>(height);
     ANativeWindowBuffer::stride = static_cast<int>(stride);
@@ -210,24 +196,27 @@ status_t GraphicBuffer::initWithHandle(const native_handle_t* handle,
     ANativeWindowBuffer::usage_deprecated = int(usage);
 
     ANativeWindowBuffer::layerCount = layerCount;
-    ANativeWindowBuffer::handle = handle;
 
     mOwner = (method == WRAP_HANDLE) ? ownNone : ownHandle;
 
-    if (method == TAKE_UNREGISTERED_HANDLE) {
-        status_t err = mBufferMapper.importBuffer(handle);
+    if (method == TAKE_UNREGISTERED_HANDLE || method == CLONE_HANDLE) {
+        buffer_handle_t importedHandle;
+        status_t err = mBufferMapper.importBuffer(handle, &importedHandle);
         if (err != NO_ERROR) {
-            // clean up cloned handle
-            if (clone) {
-                native_handle_close(clone);
-                native_handle_delete(clone);
-            }
-
             initWithHandle(nullptr, WRAP_HANDLE, 0, 0, 0, 0, 0, 0);
 
             return err;
         }
+
+        if (method == TAKE_UNREGISTERED_HANDLE) {
+            native_handle_close(handle);
+            native_handle_delete(const_cast<native_handle_t*>(handle));
+        }
+
+        handle = importedHandle;
     }
+
+    ANativeWindowBuffer::handle = handle;
 
     return NO_ERROR;
 }
@@ -469,7 +458,8 @@ status_t GraphicBuffer::unflatten(
     mOwner = ownHandle;
 
     if (handle != 0) {
-        status_t err = mBufferMapper.importBuffer(handle);
+        buffer_handle_t importedHandle;
+        status_t err = mBufferMapper.importBuffer(handle, &importedHandle);
         if (err != NO_ERROR) {
             width = height = stride = format = usage_deprecated = 0;
             layerCount = 0;
@@ -478,6 +468,10 @@ status_t GraphicBuffer::unflatten(
             ALOGE("unflatten: registerBuffer failed: %s (%d)", strerror(-err), err);
             return err;
         }
+
+        native_handle_close(handle);
+        native_handle_delete(const_cast<native_handle_t*>(handle));
+        handle = importedHandle;
     }
 
     buffer = static_cast<void const*>(static_cast<uint8_t const*>(buffer) + sizeNeeded);
