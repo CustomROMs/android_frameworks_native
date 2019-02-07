@@ -4244,8 +4244,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
         const sp<IGraphicBufferProducer>& producer,
         Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
         int32_t minLayerZ, int32_t maxLayerZ,
-        bool useIdentityTransform, ISurfaceComposer::Rotation rotation,
-        bool useReadPixels) {
+        bool useIdentityTransform, ISurfaceComposer::Rotation rotation) {
     ATRACE_CALL();
 
     if (CC_UNLIKELY(display == 0))
@@ -4339,7 +4338,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
             sp<const DisplayDevice> device(getDisplayDeviceLocked(display));
             result = captureScreenImplLocked(device, buffer, sourceCrop, reqWidth, reqHeight,
                                              minLayerZ, maxLayerZ, useIdentityTransform,
-                                             rotationFlags, isLocalScreenshot, &fd, useReadPixels && !mGpuToCpuSupported);
+                                             rotationFlags, isLocalScreenshot, &fd);
         }
 
         {
@@ -4528,8 +4527,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(const sp<const DisplayDevice>& 
                                                  int32_t minLayerZ, int32_t maxLayerZ,
                                                  bool useIdentityTransform,
                                                  Transform::orientation_flags rotation,
-                                                 bool isLocalScreenshot, int* outSyncFd,
-                                                 bool useReadPixels) {
+                                                 bool isLocalScreenshot, int* outSyncFd) {
     ATRACE_CALL();
 
     bool secureLayerIsVisible = false;
@@ -4564,8 +4562,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(const sp<const DisplayDevice>& 
 
     // this binds the given EGLImage as a framebuffer for the
     // duration of this scope.
-    RenderEngine::BindImageAsFramebuffer imageBond(getRenderEngine(), image,
-            useReadPixels, reqWidth, reqHeight);
+    RenderEngine::BindImageAsFramebuffer imageBond(getRenderEngine(), image);
     if (imageBond.getStatus() != NO_ERROR) {
         ALOGE("got GL_FRAMEBUFFER_COMPLETE_OES error while taking screenshot");
         return INVALID_OPERATION;
@@ -4616,15 +4613,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(const sp<const DisplayDevice>& 
         }
     }
     *outSyncFd = syncFd;
-    if (useReadPixels) {
-        sp<GraphicBuffer> buf = static_cast<GraphicBuffer*>(buffer);
-        void* vaddr;
-        if (buf->lock(GRALLOC_USAGE_SW_WRITE_OFTEN, &vaddr) == NO_ERROR) {
-            getRenderEngine().readPixels(0, 0, buffer->stride, reqHeight,
-                    (uint32_t *)vaddr);
-                buf->unlock();
-        }
-    }
+
     if (DEBUG_SCREENSHOTS) {
         uint32_t* pixels = new uint32_t[reqWidth*reqHeight];
         getRenderEngine().readPixels(0, 0, reqWidth, reqHeight, pixels);

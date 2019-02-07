@@ -296,7 +296,6 @@ private:
             Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
             int32_t minLayerZ, int32_t maxLayerZ,
             bool useIdentityTransform, ISurfaceComposer::Rotation rotation);
-            bool isCpuConsumer);
     virtual status_t getDisplayStats(const sp<IBinder>& display,
             DisplayStatInfo* stats);
     virtual status_t getDisplayConfigs(const sp<IBinder>& display,
@@ -456,7 +455,7 @@ private:
                                      uint32_t reqWidth, uint32_t reqHeight, int32_t minLayerZ,
                                      int32_t maxLayerZ, bool useIdentityTransform,
                                      Transform::orientation_flags rotation, bool isLocalScreenshot,
-                                     int* outSyncFd, bool useReadPixels);
+                                     int* outSyncFd);
 #else
     status_t captureScreenImplLocked(
             const sp<const DisplayDevice>& hw,
@@ -464,7 +463,7 @@ private:
             Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
             int32_t minLayerZ, int32_t maxLayerZ,
             bool useIdentityTransform, Transform::orientation_flags rotation,
-            bool isLocalScreenshot, bool useReadPixels);
+            bool isLocalScreenshot);
 #endif
 
     sp<StartPropertySetThread> mStartPropertySetThread = nullptr;
