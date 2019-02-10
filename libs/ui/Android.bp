@@ -25,6 +25,7 @@ cc_library_shared {
         "-Wall",
     ],
     cppflags: [
+        "-Wno-shift-sign-overflow",
         // The static constructors and destructors in this library have not been noted to
         // introduce significant overheads
         "-Wno-exit-time-destructors",
@@ -80,6 +81,7 @@ cc_library_shared {
     ],
 
     include_dirs: [
+        "hardware/interfaces/graphics/mapper/2.0/default",
         "frameworks/native/include",
     ],
 

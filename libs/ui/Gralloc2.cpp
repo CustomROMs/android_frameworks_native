@@ -27,11 +27,16 @@
 #include <sync/sync.h>
 #pragma clang diagnostic pop
 
+#include <hardware/gralloc.h>
+
+#include "GrallocBufferDescriptor.h"
+
 namespace android {
 
 namespace Gralloc2 {
 
 namespace {
+static alloc_device_t  *mAllocDev;
 
 static constexpr Error kTransactionError = Error::NO_RESOURCES;
 
@@ -326,6 +331,13 @@ Allocator::Allocator(const Mapper& mapper)
     if (mAllocator == nullptr) {
         LOG_ALWAYS_FATAL("gralloc-alloc is missing");
     }
+
+    hw_module_t const* module;
+    int err = hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &module);
+    ALOGE_IF(err, "FATAL: can't find the %s module", GRALLOC_HARDWARE_MODULE_ID);
+    if (err == 0) {
+        gralloc_open(module, &mAllocDev);
+    }
 }
 
 std::string Allocator::dumpDebugInfo() const
@@ -339,10 +351,32 @@ std::string Allocator::dumpDebugInfo() const
     return debugInfo;
 }
 
-Error Allocator::allocate(BufferDescriptor descriptor, uint32_t count,
+Error Allocator::allocate(BufferDescriptor descriptor, uint32_t /*count*/,
         uint32_t* outStride, buffer_handle_t* outBufferHandles) const
 {
+#if 1
     Error error;
+    // we have a h/w allocator and h/w buffer is requested
+    status_t err;
+    // Filter out any usage bits that should not be passed to the gralloc module
+    int stride = 0;
+
+    IMapper::BufferDescriptorInfo info;
+    if (!hardware::graphics::mapper::V2_0::implementation::grallocDecodeBufferDescriptor(descriptor, &info)) {
+	return Error::BAD_DESCRIPTOR;
+    }
+
+    uint32_t usage = static_cast<uint32_t>(info.usage) & GRALLOC_USAGE_ALLOC_MASK;
+
+    err = mAllocDev->alloc(mAllocDev, static_cast<int>(info.width),
+            static_cast<int>(info.height), static_cast<int>(info.format), static_cast<int>(usage), outBufferHandles,
+            &stride);
+    *outStride = static_cast<uint32_t>(stride);
+
+    ALOGW_IF(err, "alloc(%u, %u, %d, %llx, ...) failed %d (%s)",
+            info.width, info.height, info.format, info.usage, err, strerror(-err));
+
+#else
     auto ret = mAllocator->allocate(descriptor, count,
             [&](const auto& tmpError, const auto& tmpStride,
                 const auto& tmpBuffers) {
@@ -366,11 +400,13 @@ Error Allocator::allocate(BufferDescriptor descriptor, uint32_t count,
 
                 *outStride = tmpStride;
             });
+#endif
 
     // make sure the kernel driver sees BC_FREE_BUFFER and closes the fds now
     hardware::IPCThreadState::self()->flushCommands();
 
-    return (ret.isOk()) ? error : kTransactionError;
+    return (err == 0) ? Error::NONE : kTransactionError;
+    //return (ret.isOk()) ? error : kTransactionError;
 }
 
 } // namespace Gralloc2
