@@ -47,8 +47,15 @@ void GraphicBufferMapper::preloadHal() {
 }
 
 GraphicBufferMapper::GraphicBufferMapper()
-  : mMapper(std::make_unique<const Gralloc2::Mapper>())
+  : mMapper(std::make_unique<const Gralloc2::Mapper>()),
+    mAllocMod(0)
 {
+    hw_module_t const* module;
+    int err = hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &module);
+    ALOGE_IF(err, "FATAL: can't find the %s module", GRALLOC_HARDWARE_MODULE_ID);
+    if (err == 0) {
+        mAllocMod = reinterpret_cast<gralloc_module_t const *>(module);
+    }
 }
 
 status_t GraphicBufferMapper::importBuffer(buffer_handle_t rawHandle,
@@ -56,7 +63,6 @@ status_t GraphicBufferMapper::importBuffer(buffer_handle_t rawHandle,
         PixelFormat format, uint64_t usage, uint32_t stride,
         buffer_handle_t* outHandle)
 {
-    ATRACE_CALL();
 
     buffer_handle_t bufferHandle;
     Gralloc2::Error error = mMapper->importBuffer(
@@ -82,7 +88,15 @@ status_t GraphicBufferMapper::importBuffer(buffer_handle_t rawHandle,
 
     *outHandle = bufferHandle;
 
-    return NO_ERROR;
+    return static_cast<status_t>(error);
+#if 0
+    status_t err;
+    err = mAllocMod->registerBuffer(mAllocMod, handle);
+
+    ALOGW_IF(err, "registerBuffer(%p) failed %d (%s)",
+            handle, err, strerror(-err));
+    return err;
+#endif
 }
 
 void GraphicBufferMapper::getTransportSize(buffer_handle_t handle,
@@ -98,6 +112,14 @@ status_t GraphicBufferMapper::freeBuffer(buffer_handle_t handle)
     mMapper->freeBuffer(handle);
 
     return NO_ERROR;
+#if 0
+    status_t err;
+    err = mAllocMod->unregisterBuffer(handle);
+
+    ALOGW_IF(err, "unregisterBuffer(%p) failed %d (%s)",
+            handle, err, strerror(-err));
+    return err;
+#endif
 }
 
 static inline Gralloc2::IMapper::Rect asGralloc2Rect(const Rect& rect) {
@@ -139,49 +161,54 @@ status_t GraphicBufferMapper::lockAsync(buffer_handle_t handle,
 }
 
 status_t GraphicBufferMapper::lockAsync(buffer_handle_t handle,
-        uint64_t producerUsage, uint64_t consumerUsage, const Rect& bounds,
-        void** vaddr, int fenceFd)
+        uint64_t producerUsage, uint64_t /*consumerUsage*/, const Rect& bounds,
+        void** vaddr, int /*fenceFd*/)
 {
     ATRACE_CALL();
+    status_t err;
 
-    const uint64_t usage = static_cast<uint64_t>(
-            android_convertGralloc1To0Usage(producerUsage, consumerUsage));
-    Gralloc2::Error error = mMapper->lock(handle, usage,
-            asGralloc2Rect(bounds), fenceFd, vaddr);
+    err = mAllocMod->lock(mAllocMod, handle, static_cast<int>(producerUsage),
+            bounds.left, bounds.top, bounds.width(), bounds.height(),
+            vaddr);
 
-    ALOGW_IF(error != Gralloc2::Error::NONE, "lock(%p, ...) failed: %d",
-            handle, error);
-
-    return static_cast<status_t>(error);
+    ALOGW_IF(err, "lock(...) failed %d (%s)", err, strerror(-err));
+    return err;
 }
 
 status_t GraphicBufferMapper::lockAsyncYCbCr(buffer_handle_t handle,
-        uint32_t usage, const Rect& bounds, android_ycbcr *ycbcr, int fenceFd)
+        uint32_t usage, const Rect& bounds, android_ycbcr *ycbcr, int /*fenceFd*/)
 {
     ATRACE_CALL();
+    status_t err;
 
-    Gralloc2::YCbCrLayout layout;
-    Gralloc2::Error error = mMapper->lock(handle, usage,
-            asGralloc2Rect(bounds), fenceFd, &layout);
-    if (error == Gralloc2::Error::NONE) {
-        ycbcr->y = layout.y;
-        ycbcr->cb = layout.cb;
-        ycbcr->cr = layout.cr;
-        ycbcr->ystride = static_cast<size_t>(layout.yStride);
-        ycbcr->cstride = static_cast<size_t>(layout.cStride);
-        ycbcr->chroma_step = static_cast<size_t>(layout.chromaStep);
+    if (mAllocMod->lock_ycbcr == NULL) {
+        return -EINVAL; // do not log failure
     }
 
-    return static_cast<status_t>(error);
+    err = mAllocMod->lock_ycbcr(mAllocMod, handle, static_cast<int>(usage),
+            bounds.left, bounds.top, bounds.width(), bounds.height(),
+            ycbcr);
+
+    ALOGW_IF(err, "lock(...) failed %d (%s)", err, strerror(-err));
+
+    return err;
 }
 
 status_t GraphicBufferMapper::unlockAsync(buffer_handle_t handle, int *fenceFd)
 {
     ATRACE_CALL();
 
-    *fenceFd = mMapper->unlock(handle);
+    status_t err;
 
-    return NO_ERROR;
+    if (mAllocMod->common.module_api_version >= GRALLOC_MODULE_API_VERSION_0_3) {
+        err = mAllocMod->unlockAsync(mAllocMod, handle, fenceFd);
+    } else {
+        *fenceFd = -1;
+        err = mAllocMod->unlock(mAllocMod, handle);
+    }
+
+    ALOGW_IF(err, "unlockAsync(...) failed %d (%s)", err, strerror(-err));
+    return err;
 }
 
 // ---------------------------------------------------------------------------
