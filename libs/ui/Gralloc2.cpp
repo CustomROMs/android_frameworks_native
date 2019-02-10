@@ -221,6 +221,11 @@ Allocator::Allocator(const Mapper& mapper)
     }
 }
 
+Allocator::~Allocator()
+{
+    gralloc_close(mAllocDev);
+}
+
 std::string Allocator::dumpDebugInfo() const
 {
     std::string debugInfo;
@@ -253,6 +258,8 @@ Error Allocator::allocate(BufferDescriptor descriptor, uint32_t /*count*/,
             static_cast<int>(info.height), static_cast<int>(info.format), static_cast<int>(usage), outBufferHandles,
             &stride);
     *outStride = static_cast<uint32_t>(stride);
+    mMapper.importBuffer(outBufferHandles[0],
+                        &outBufferHandles[0]);
 
     ALOGW_IF(err, "alloc(%u, %u, %d, %llx, ...) failed %d (%s)",
             info.width, info.height, info.format, info.usage, err, strerror(-err));
@@ -266,6 +273,10 @@ Error Allocator::allocate(BufferDescriptor descriptor, uint32_t /*count*/,
                     return;
                 }
 
+		//*outBufferHandles = tmpBuffers[0];
+		mMapper.importBuffer(tmpBuffers[0],
+                            &outBufferHandles[0]);
+#if 0
                 // import buffers
                 for (uint32_t i = 0; i < count; i++) {
                     error = mMapper.importBuffer(tmpBuffers[i],
@@ -278,7 +289,7 @@ Error Allocator::allocate(BufferDescriptor descriptor, uint32_t /*count*/,
                         return;
                     }
                 }
-
+#endif
                 *outStride = tmpStride;
             });
 #endif
