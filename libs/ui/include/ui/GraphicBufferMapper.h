@@ -29,6 +29,7 @@
 // when/if we get rid of gralloc, we should provide aliases or fix call sites.
 #include <hardware/gralloc.h>
 
+struct gralloc_module_t;
 
 namespace android {
 
@@ -85,6 +86,7 @@ private:
     GraphicBufferMapper();
 
     const std::unique_ptr<const Gralloc2::Mapper> mMapper;
+    gralloc_module_t const *mAllocMod;
 };
 
 // ---------------------------------------------------------------------------
