@@ -50,6 +50,7 @@ GraphicBufferMapper::GraphicBufferMapper()
   : mMapper(std::make_unique<const Gralloc2::Mapper>()),
     mAllocMod(0)
 {
+    mMapperVersion = Version::GRALLOC_2;
     hw_module_t const* module;
     int err = hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &module);
     ALOGE_IF(err, "FATAL: can't find the %s module", GRALLOC_HARDWARE_MODULE_ID);
