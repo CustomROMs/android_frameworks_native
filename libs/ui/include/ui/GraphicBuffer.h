@@ -26,6 +26,7 @@
 
 #include <android/hardware_buffer.h>
 #include <ui/ANativeObjectBase.h>
+#include <ui/GraphicBufferMapper.h>
 #include <ui/PixelFormat.h>
 #include <ui/Rect.h>
 #include <utils/Flattenable.h>
@@ -204,6 +205,10 @@ public:
     size_t getFdCount() const;
     status_t flatten(void*& buffer, size_t& size, int*& fds, size_t& count) const;
     status_t unflatten(void const*& buffer, size_t& size, int const*& fds, size_t& count);
+
+    GraphicBufferMapper::Version getBufferMapperVersion() const {
+        return mBufferMapper.getMapperVersion();
+    }
 
     // Sets and takes DetachedBuffer. Should only be called from BufferHub.
     bool isDetachedBuffer() const;
