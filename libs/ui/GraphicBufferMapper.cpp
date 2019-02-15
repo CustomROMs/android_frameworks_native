@@ -49,6 +49,7 @@ void GraphicBufferMapper::preloadHal() {
 GraphicBufferMapper::GraphicBufferMapper()
   : mMapper(std::make_unique<const Gralloc2::Mapper>())
 {
+    mMapperVersion = Version::GRALLOC_2;
 }
 
 status_t GraphicBufferMapper::importBuffer(buffer_handle_t rawHandle,
