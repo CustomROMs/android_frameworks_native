@@ -456,6 +456,8 @@ void DisplayHardware::flip(const Region& dirty) const
     if (mHwc->initCheck() == NO_ERROR) {
         mHwc->commit();
     } else {
+        // Make sure the swapbuffer call is done in sync
+        mNativeWindow->compositionComplete();
         eglSwapBuffers(dpy, surface);
     }
     checkEGLErrors("eglSwapBuffers");

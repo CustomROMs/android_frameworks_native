@@ -891,8 +891,8 @@ void SurfaceFlinger::handleRepaint()
 
     // set the frame buffer
     const DisplayHardware& hw(graphicPlane(0).displayHardware());
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    //glMatrixMode(GL_MODELVIEW);
+    //glLoadIdentity();
 
     uint32_t flags = hw.getFlags();
     if (flags & DisplayHardware::SWAP_RECTANGLE) {

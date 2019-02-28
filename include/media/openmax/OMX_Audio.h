@@ -394,6 +394,36 @@ typedef struct OMX_AUDIO_PARAM_WMATYPE {
     OMX_U32 nSuperBlockAlign; /**< WMA Type-specific data */
 } OMX_AUDIO_PARAM_WMATYPE;
 
+
+/** WMA Pro Profile */
+typedef enum OMX_AUDIO_WMAPROPROFILETYPE {
+  OMX_AUDIO_WMAPROProfileUnused = 0,          /**< WMA unused / unknown */
+  OMX_AUDIO_WMAPROProfileM0,
+  OMX_AUDIO_WMAPROProfileM1,
+  OMX_AUDIO_WMAPROProfileM2,
+  OMX_AUDIO_WMAPROProfileM3,
+  OMX_AUDIO_WMAPROProfileMax = 0x7FFFFFFF
+} OMX_AUDIO_WMAPROPROFILETYPE;
+
+
+/** WMA Pro params */
+typedef struct OMX_AUDIO_PARAM_WMAPROTYPE {
+    OMX_U32 nSize;
+    OMX_VERSIONTYPE nVersion;
+    OMX_U32 nPortIndex;
+    OMX_U16 nChannels;
+    OMX_U32 nBitRate;
+    OMX_AUDIO_WMAPROPROFILETYPE eProfile;
+    OMX_U32 nSamplingRate;
+    OMX_U32 nBlockAlign;
+    OMX_U32 nSuperBlockAlign;
+    OMX_U32 nEncodeOptions;
+    OMX_U32 nAdvancedEncodeOptions;
+    OMX_U32 nAdvancedEncodeOptions2;
+    OMX_U32 nChannelMask;
+    OMX_U32 nSourceBitsPerSample;
+} OMX_AUDIO_PARAM_WMAPROTYPE;
+
 /** 
  * RealAudio format
  */

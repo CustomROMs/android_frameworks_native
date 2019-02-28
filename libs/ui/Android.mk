@@ -24,6 +24,10 @@ LOCAL_SRC_FILES:= \
 	Rect.cpp \
 	Region.cpp
 
+ifdef BOARD_NUM_FRAME_BUFFERS
+LOCAL_CFLAGS:= -DNUM_FRAME_BUFFERS=$(BOARD_NUM_FRAME_BUFFERS)
+endif
+
 LOCAL_SHARED_LIBRARIES := \
 	libcutils \
 	libutils \

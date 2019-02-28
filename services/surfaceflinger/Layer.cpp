@@ -334,6 +334,16 @@ void Layer::onDraw(const Region& clip) const
 {
     ATRACE_CALL();
 
+    // Convert the texture to a native format if need be.
+    // convert() returns immediately if no conversion is necessary.
+    if (mSurfaceTexture != NULL) {
+        status_t res = mSurfaceTexture->convert();
+        if (res != NO_ERROR) {
+            ALOGE("Layer::onDraw: texture conversion failed. "
+                "Texture content for this layer will not be initialized.");
+        }
+    }
+
     if (CC_UNLIKELY(mActiveBuffer == 0)) {
         // the texture has not been created yet, this Layer has
         // in fact never been drawn into. This happens frequently with
@@ -646,7 +656,7 @@ void Layer::lockPageFlip(bool& recomputeVisibleRegions)
 
         Reject r(mDrawingState, currentState(), recomputeVisibleRegions);
 
-        if (mSurfaceTexture->updateTexImage(&r) < NO_ERROR) {
+	if (mSurfaceTexture->updateTexImage(&r, true) < NO_ERROR) {
             // something happened!
             recomputeVisibleRegions = true;
             return;
