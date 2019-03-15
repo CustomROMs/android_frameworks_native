@@ -116,6 +116,9 @@ GraphicBuffer::~GraphicBuffer()
     if (handle) {
         free_handle();
     }
+    for (auto& [callback, context] : mDeathCallbacks) {
+        callback(context, mId);
+    }
 }
 
 void GraphicBuffer::free_handle()
@@ -474,6 +477,10 @@ status_t GraphicBuffer::unflatten(
     count -= numFds;
 
     return NO_ERROR;
+}
+
+void GraphicBuffer::addDeathCallback(GraphicBufferDeathCallback deathCallback, void* context) {
+    mDeathCallbacks.emplace_back(deathCallback, context);
 }
 
 // ---------------------------------------------------------------------------
