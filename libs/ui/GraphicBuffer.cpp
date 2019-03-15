@@ -115,6 +115,9 @@ GraphicBuffer::~GraphicBuffer()
     if (handle) {
         free_handle();
     }
+    for (auto& [callback, context] : mDeathCallbacks) {
+        callback(context, mId);
+    }
 }
 
 void GraphicBuffer::free_handle()
@@ -523,6 +526,10 @@ status_t GraphicBuffer::setDetachedBufferHandle(std::unique_ptr<DetachedBufferHa
 
 std::unique_ptr<DetachedBufferHandle> GraphicBuffer::takeDetachedBufferHandle() {
     return std::move(mDetachedBufferHandle);
+}
+
+void GraphicBuffer::addDeathCallback(GraphicBufferDeathCallback deathCallback, void* context) {
+    mDeathCallbacks.emplace_back(deathCallback, context);
 }
 
 // ---------------------------------------------------------------------------

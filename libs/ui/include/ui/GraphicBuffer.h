@@ -21,6 +21,8 @@
 #include <sys/types.h>
 
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <android/hardware_buffer.h>
 #include <ui/ANativeObjectBase.h>
@@ -37,6 +39,8 @@ namespace android {
 
 class DetachedBufferHandle;
 class GraphicBufferMapper;
+
+using GraphicBufferDeathCallback = std::function<void(void* /*context*/, uint64_t bufferId)>;
 
 // ===========================================================================
 // GraphicBuffer
@@ -199,6 +203,8 @@ public:
     status_t setDetachedBufferHandle(std::unique_ptr<DetachedBufferHandle> detachedBuffer);
     std::unique_ptr<DetachedBufferHandle> takeDetachedBufferHandle();
 
+    void addDeathCallback(GraphicBufferDeathCallback deathCallback, void* context);
+
 private:
     ~GraphicBuffer();
 
@@ -259,6 +265,20 @@ private:
     // 3. Attached mode: GraphicBuffer is backed by BufferHub and it's part of a producer/consumer
     //    set. In this mode, mDetachedBufferHandle must be invalid.
     std::unique_ptr<DetachedBufferHandle> mDetachedBufferHandle;
+
+    // Send a callback when a GraphicBuffer dies.
+    //
+    // This is used for BufferStateLayer caching. GraphicBuffers are refcounted per process. When
+    // A GraphicBuffer doesn't have any more sp<> in a process, it is destroyed. This causes
+    // problems when trying to implicitcly cache across process boundaries. Ideally, both sides
+    // of the cache would hold onto wp<> references. When an app dropped its sp<>, the GraphicBuffer
+    // would be destroyed. Unfortunately, when SurfaceFlinger has only a wp<> reference to the
+    // GraphicBuffer, it immediately goes out of scope in the SurfaceFlinger process. SurfaceFlinger
+    // must hold onto a sp<> to the buffer. When the GraphicBuffer goes out of scope in the app's
+    // process, the client side cache will get this callback. It erases the buffer from its cache
+    // and informs SurfaceFlinger that it should drop its strong pointer reference to the buffer.
+    std::vector<std::pair<GraphicBufferDeathCallback, void* /*mDeathCallbackContext*/>>
+            mDeathCallbacks;
 };
 
 }; // namespace android
