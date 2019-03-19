@@ -36,11 +36,7 @@ namespace android {
 // ===========================================================================
 
 class Fence
-#ifdef STE_HARDWARE
-    : public LightRefBase<Fence>, public Flattenable
-#else
     : public LightRefBase<Fence>, public Flattenable<Fence>
-#endif
 {
 public:
     static const sp<Fence> NO_FENCE;
