@@ -465,7 +465,8 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
                      + (target_sdk_version != 0 ? 2 : 0)
                      + (enable_hidden_api_checks ? 2 : 0)
                      + (dex_metadata_fd > -1 ? 1 : 0)
-                     + (compilation_reason != nullptr ? 1 : 0)];
+                     + (compilation_reason != nullptr ? 1 : 0)
+                     + 3];
     int i = 0;
     argv[i++] = dex2oat_bin;
     argv[i++] = zip_fd_arg;
@@ -551,6 +552,11 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
     if(compilation_reason != nullptr) {
         argv[i++] = compilation_reason_arg.c_str();
     }
+
+    argv[i++] = "--inline-max-code-units=8";
+    argv[i++] = "--copy-dex-files=false";
+    argv[i++] = "--deduplicate-code=true";
+
     // Do not add after dex2oat_flags, they should override others for debugging.
     argv[i] = NULL;
 
