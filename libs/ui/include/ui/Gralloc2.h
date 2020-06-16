@@ -80,6 +80,9 @@ public:
     // owned by the caller
     int unlock(buffer_handle_t bufferHandle) const;
 
+    status_t isSupported(uint32_t width, uint32_t height, android::PixelFormat format,
+                         uint32_t layerCount, uint64_t usage, bool* outSupported) const;
+
 private:
     // Determines whether the passed info is compatible with the mapper.
     Error validateBufferDescriptorInfo(

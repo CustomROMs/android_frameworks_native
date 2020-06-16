@@ -83,6 +83,9 @@ public:
         return *mMapper;
     }
 
+    status_t isSupported(uint32_t width, uint32_t height, android::PixelFormat format,
+                         uint32_t layerCount, uint64_t usage, bool* outSupported) const;
+
 private:
     friend class Singleton<GraphicBufferMapper>;
 
