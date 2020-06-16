@@ -23,6 +23,7 @@
 #include <android/hardware/graphics/common/1.1/types.h>
 #include <android/hardware/graphics/mapper/2.0/IMapper.h>
 #include <android/hardware/graphics/mapper/2.1/IMapper.h>
+#include <ui/PixelFormat.h>
 #include <utils/StrongPointer.h>
 
 namespace android {
@@ -79,6 +80,9 @@ public:
     // unlock returns a fence sync object (or -1) and the fence sync object is
     // owned by the caller
     int unlock(buffer_handle_t bufferHandle) const;
+
+    status_t isSupported(uint32_t width, uint32_t height, android::PixelFormat format,
+                         uint32_t layerCount, uint64_t usage, bool* outSupported) const;
 
 private:
     // Determines whether the passed info is compatible with the mapper.
