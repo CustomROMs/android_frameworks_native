@@ -37,8 +37,8 @@ public:
         mMinLuminance(minLuminance) {}
 
     // Make this move-constructable and move-assignable
-    HdrCapabilities(HdrCapabilities&& other) noexcept;
-    HdrCapabilities& operator=(HdrCapabilities&& other) noexcept;
+    HdrCapabilities(HdrCapabilities&& other);
+    HdrCapabilities& operator=(HdrCapabilities&& other);
 
     HdrCapabilities()
       : mSupportedHdrTypes(),
