@@ -45,8 +45,6 @@ cc_library_shared {
 
         // Don't warn about struct padding
         "-Wno-padded",
-
-        "-Wno-switch-enum",
     ],
 
     product_variables: {
@@ -63,26 +61,18 @@ cc_library_shared {
 
     srcs: [
         "ColorSpace.cpp",
-        "BufferHubBuffer.cpp",
-        "BufferHubEventFd.cpp",
-        "BufferHubMetadata.cpp",
         "DebugUtils.cpp",
         "Fence.cpp",
         "FenceTime.cpp",
         "FrameStats.cpp",
-        "Gralloc.cpp",
         "Gralloc2.cpp",
-        "Gralloc3.cpp",
         "GraphicBuffer.cpp",
         "GraphicBufferAllocator.cpp",
         "GraphicBufferMapper.cpp",
         "HdrCapabilities.cpp",
         "PixelFormat.cpp",
-        "PublicFormat.cpp",
         "Rect.cpp",
         "Region.cpp",
-        "Size.cpp",
-        "Transform.cpp",
         "UiConfig.cpp",
     ],
 
@@ -90,17 +80,13 @@ cc_library_shared {
         "frameworks/native/include",
     ],
 
-    // Uncomment the following line to enable VALIDATE_REGIONS traces
-    //defaults: ["libui-validate-regions-defaults"],
-
     shared_libs: [
-        "android.frameworks.bufferhub@1.0",
         "android.hardware.graphics.allocator@2.0",
-        "android.hardware.graphics.allocator@3.0",
-        "android.hardware.graphics.common@1.2",
+        "android.hardware.graphics.common@1.1",
         "android.hardware.graphics.mapper@2.0",
         "android.hardware.graphics.mapper@2.1",
-        "android.hardware.graphics.mapper@3.0",
+        "android.hardware.configstore@1.0",
+        "android.hardware.configstore-utils",
         "libbase",
         "libcutils",
         "libhardware",
@@ -109,11 +95,12 @@ cc_library_shared {
         "libhwbinder",
         "libsync",
         "libutils",
+        "libutilscallstack",
         "liblog",
     ],
 
     export_shared_lib_headers: [
-        "android.hardware.graphics.common@1.2",
+        "android.hardware.graphics.common@1.1",
     ],
 
     static_libs: [

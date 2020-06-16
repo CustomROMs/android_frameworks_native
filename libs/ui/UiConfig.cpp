@@ -18,7 +18,8 @@
 
 namespace android {
 
-void appendUiConfigString(std::string& configStr) {
+void appendUiConfigString(String8& configStr)
+{
     static const char* config =
             " [libui]";
     configStr.append(config);

@@ -19,9 +19,9 @@
 #include <inttypes.h>
 #include <limits.h>
 
-#include <android-base/stringprintf.h>
-
 #include <utils/Log.h>
+#include <utils/String8.h>
+#include <utils/CallStack.h>
 
 #include <ui/Rect.h>
 #include <ui/Region.h>
@@ -30,17 +30,9 @@
 #include <private/ui/RegionHelper.h>
 
 // ----------------------------------------------------------------------------
-
-// ### VALIDATE_REGIONS ###
-// To enable VALIDATE_REGIONS traces, use the "libui-validate-regions-defaults"
-// in Android.bp. Do not #define VALIDATE_REGIONS here as it requires extra libs.
-
+#define VALIDATE_REGIONS        (false)
 #define VALIDATE_WITH_CORECG    (false)
 // ----------------------------------------------------------------------------
-
-#if defined(VALIDATE_REGIONS)
-#include <utils/CallStack.h>
-#endif
 
 #if VALIDATE_WITH_CORECG
 #include <core/SkRegion.h>
@@ -48,8 +40,6 @@
 
 namespace android {
 // ----------------------------------------------------------------------------
-
-using base::StringAppendF;
 
 enum {
     op_nand = region_operator<Rect>::op_nand,
@@ -74,7 +64,7 @@ Region::Region() {
 Region::Region(const Region& rhs)
     : mStorage(rhs.mStorage)
 {
-#if defined(VALIDATE_REGIONS)
+#if VALIDATE_REGIONS
     validate(rhs, "rhs copy-ctor");
 #endif
 }
@@ -210,7 +200,7 @@ Region Region::createTJunctionFreeRegion(const Region& r) {
             outputRegion.mStorage, direction_LTR);
     outputRegion.mStorage.add(r.getBounds()); // to make region valid, mStorage must end with bounds
 
-#if defined(VALIDATE_REGIONS)
+#if VALIDATE_REGIONS
     validate(outputRegion, "T-Junction free region");
 #endif
 
@@ -219,7 +209,7 @@ Region Region::createTJunctionFreeRegion(const Region& r) {
 
 Region& Region::operator = (const Region& rhs)
 {
-#if defined(VALIDATE_REGIONS)
+#if VALIDATE_REGIONS
     validate(*this, "this->operator=");
     validate(rhs, "rhs.operator=");
 #endif
@@ -332,20 +322,6 @@ Region& Region::operationSelf(const Region& rhs, uint32_t op) {
 
 Region& Region::translateSelf(int x, int y) {
     if (x|y) translate(*this, x, y);
-    return *this;
-}
-
-Region& Region::scaleSelf(float sx, float sy) {
-    size_t count = mStorage.size();
-    Rect* rects = mStorage.editArray();
-    while (count) {
-        rects->left = static_cast<int32_t>(rects->left * sx + 0.5f);
-        rects->right = static_cast<int32_t>(rects->right * sx + 0.5f);
-        rects->top = static_cast<int32_t>(rects->top * sy + 0.5f);
-        rects->bottom = static_cast<int32_t>(rects->bottom * sy + 0.5f);
-        rects++;
-        count--;
-    }
     return *this;
 }
 
@@ -606,12 +582,10 @@ bool Region::validate(const Region& reg, const char* name, bool silent)
         result = false;
         ALOGE_IF(!silent, "%s: mStorage size is 2, which is never valid", name);
     }
-#if defined(VALIDATE_REGIONS)
     if (result == false && !silent) {
         reg.dump(name);
         CallStack stack(LOG_TAG);
     }
-#endif
     return result;
 }
 
@@ -619,7 +593,7 @@ void Region::boolean_operation(uint32_t op, Region& dst,
         const Region& lhs,
         const Region& rhs, int dx, int dy)
 {
-#if defined(VALIDATE_REGIONS)
+#if VALIDATE_REGIONS
     validate(lhs, "boolean_operation (before): lhs");
     validate(rhs, "boolean_operation (before): rhs");
     validate(dst, "boolean_operation (before): dst");
@@ -639,7 +613,7 @@ void Region::boolean_operation(uint32_t op, Region& dst,
         operation(r);
     }
 
-#if defined(VALIDATE_REGIONS)
+#if VALIDATE_REGIONS
     validate(lhs, "boolean_operation: lhs");
     validate(rhs, "boolean_operation: rhs");
     validate(dst, "boolean_operation: dst");
@@ -737,7 +711,7 @@ void Region::boolean_operation(uint32_t op, Region& dst,
         return;
     }
 
-#if VALIDATE_WITH_CORECG || defined(VALIDATE_REGIONS)
+#if VALIDATE_WITH_CORECG || VALIDATE_REGIONS
     boolean_operation(op, dst, lhs, Region(rhs), dx, dy);
 #else
     size_t lhs_count;
@@ -769,7 +743,7 @@ void Region::boolean_operation(uint32_t op, Region& dst,
 void Region::translate(Region& reg, int dx, int dy)
 {
     if ((dx || dy) && !reg.isEmpty()) {
-#if defined(VALIDATE_REGIONS)
+#if VALIDATE_REGIONS
         validate(reg, "translate (before)");
 #endif
         size_t count = reg.mStorage.size();
@@ -779,7 +753,7 @@ void Region::translate(Region& reg, int dx, int dy)
             rects++;
             count--;
         }
-#if defined(VALIDATE_REGIONS)
+#if VALIDATE_REGIONS
         validate(reg, "translate (after)");
 #endif
     }
@@ -798,7 +772,7 @@ size_t Region::getFlattenedSize() const {
 }
 
 status_t Region::flatten(void* buffer, size_t size) const {
-#if defined(VALIDATE_REGIONS)
+#if VALIDATE_REGIONS
     validate(*this, "Region::flatten");
 #endif
     if (size < getFlattenedSize()) {
@@ -829,7 +803,7 @@ status_t Region::unflatten(void const* buffer, size_t size) {
     }
 
     if (numRects > (UINT32_MAX / sizeof(Rect))) {
-        android_errorWriteWithInfoLog(0x534e4554, "29983260", -1, nullptr, 0);
+        android_errorWriteWithInfoLog(0x534e4554, "29983260", -1, NULL, 0);
         return NO_MEMORY;
     }
 
@@ -845,7 +819,7 @@ status_t Region::unflatten(void const* buffer, size_t size) {
         result.mStorage.push_back(rect);
     }
 
-#if defined(VALIDATE_REGIONS)
+#if VALIDATE_REGIONS
     validate(result, "Region::unflatten");
 #endif
 
@@ -880,14 +854,16 @@ Rect const* Region::getArray(size_t* count) const {
 
 // ----------------------------------------------------------------------------
 
-void Region::dump(std::string& out, const char* what, uint32_t /* flags */) const {
+void Region::dump(String8& out, const char* what, uint32_t /* flags */) const
+{
     const_iterator head = begin();
     const_iterator const tail = end();
 
-    StringAppendF(&out, "  Region %s (this=%p, count=%" PRIdPTR ")\n", what, this, tail - head);
+    out.appendFormat("  Region %s (this=%p, count=%" PRIdPTR ")\n",
+            what, this, tail - head);
     while (head != tail) {
-        StringAppendF(&out, "    [%3d, %3d, %3d, %3d]\n", head->left, head->top, head->right,
-                      head->bottom);
+        out.appendFormat("    [%3d, %3d, %3d, %3d]\n", head->left, head->top,
+                head->right, head->bottom);
         ++head;
     }
 }
