@@ -179,7 +179,3 @@ cc_defaults {
     cflags: ["-DVALIDATE_REGIONS"],
 }
 
-subdirs = [
-    "tests",
-    "tools",
-]
