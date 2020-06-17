@@ -23,14 +23,12 @@ cc_library_shared {
     clang: true,
     cflags: [
         "-Wall",
-        "-Werror",
     ],
     cppflags: [
-        "-Weverything",
-
         // The static constructors and destructors in this library have not been noted to
         // introduce significant overheads
         "-Wno-exit-time-destructors",
+        "-Wno-unused-function",
         "-Wno-global-constructors",
 
         // We only care about compiling as C++14
