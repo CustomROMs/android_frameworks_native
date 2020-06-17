@@ -30,6 +30,7 @@ cc_library_shared {
         // introduce significant overheads
         "-Wno-exit-time-destructors",
         "-Wno-unused-function",
+        "-Wno-unused-variable",
         "-Wno-global-constructors",
 
         // We only care about compiling as C++14

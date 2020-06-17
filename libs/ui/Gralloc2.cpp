@@ -29,7 +29,7 @@
 
 #include <hardware/gralloc.h>
 
-#include "GrallocBufferDescriptor.h"
+//#include "GrallocBufferDescriptor.h"
 
 namespace android {
 
@@ -39,6 +39,13 @@ namespace {
 static alloc_device_t  *mAllocDev;
 
 static constexpr Error kTransactionError = Error::NO_RESOURCES;
+
+/**
+ * BufferDescriptor is created by IMapper and consumed by IAllocator. It is
+ * versioned so that IMapper and IAllocator can be updated independently.
+ */
+constexpr uint32_t grallocBufferDescriptorSize = 7;
+constexpr uint32_t grallocBufferDescriptorMagicVersion = ((0x9487 << 16) | 0);
 
 uint64_t getValid10UsageBits() {
     static const uint64_t valid10UsageBits = []() -> uint64_t {
@@ -356,6 +363,39 @@ std::string Allocator::dumpDebugInfo() const
     return debugInfo;
 }
 
+inline BufferDescriptor grallocEncodeBufferDescriptor(
+    const IMapper::BufferDescriptorInfo& descriptorInfo) {
+    BufferDescriptor descriptor;
+    descriptor.resize(grallocBufferDescriptorSize);
+    descriptor[0] = grallocBufferDescriptorMagicVersion;
+    descriptor[1] = descriptorInfo.width;
+    descriptor[2] = descriptorInfo.height;
+    descriptor[3] = descriptorInfo.layerCount;
+    descriptor[4] = static_cast<uint32_t>(descriptorInfo.format);
+    descriptor[5] = static_cast<uint32_t>(descriptorInfo.usage);
+    descriptor[6] = static_cast<uint32_t>(descriptorInfo.usage >> 32);
+
+    return descriptor;
+}
+
+inline bool grallocDecodeBufferDescriptor(const BufferDescriptor& descriptor,
+                                          IMapper::BufferDescriptorInfo* outDescriptorInfo) {
+    if (descriptor.size() != grallocBufferDescriptorSize ||
+        descriptor[0] != grallocBufferDescriptorMagicVersion) {
+        return false;
+    }
+
+    *outDescriptorInfo = IMapper::BufferDescriptorInfo{
+        descriptor[1],
+        descriptor[2],
+        descriptor[3],
+        static_cast<PixelFormat>(descriptor[4]),
+        (static_cast<uint64_t>(descriptor[6]) << 32) | descriptor[5],
+    };
+
+    return true;
+}
+
 Error Allocator::allocate(BufferDescriptor descriptor, uint32_t /*count*/,
         uint32_t* outStride, buffer_handle_t* outBufferHandles) const
 {
@@ -367,7 +407,7 @@ Error Allocator::allocate(BufferDescriptor descriptor, uint32_t /*count*/,
     int stride = 0;
 
     IMapper::BufferDescriptorInfo info;
-    if (!hardware::graphics::mapper::V2_0::implementation::grallocDecodeBufferDescriptor(descriptor, &info)) {
+    if (!grallocDecodeBufferDescriptor(descriptor, &info)) {
 	return Error::BAD_DESCRIPTOR;
     }
 
