@@ -20,7 +20,6 @@
 
 #include <ui/GraphicBufferAllocator.h>
 
-#include <limits.h>
 #include <stdio.h>
 
 #include <grallocusage/GrallocUsageConversion.h>
@@ -115,14 +114,6 @@ status_t GraphicBufferAllocator::allocate(uint32_t width, uint32_t height,
     if (!width || !height)
         width = height = 1;
 
-    const uint32_t bpp = bytesPerPixel(format);
-    if (std::numeric_limits<size_t>::max() / width / height < static_cast<size_t>(bpp)) {
-        ALOGE("Failed to allocate (%u x %u) layerCount %u format %d "
-              "usage %" PRIx64 ": Requesting too large a buffer size",
-              width, height, layerCount, format, usage);
-        return BAD_VALUE;
-    }
-
     // Ensure that layerCount is valid.
     if (layerCount < 1)
         layerCount = 1;
@@ -134,20 +125,10 @@ status_t GraphicBufferAllocator::allocate(uint32_t width, uint32_t height,
 
     status_t error =
             mAllocator->allocate(width, height, format, layerCount, usage, 1, stride, handle);
-    size_t bufSize;
-
-    // if stride has no meaning or is too large,
-    // approximate size with the input width instead
-    if ((*stride) != 0 &&
-        std::numeric_limits<size_t>::max() / height / (*stride) < static_cast<size_t>(bpp)) {
-        bufSize = static_cast<size_t>(width) * height * bpp;
-    } else {
-        bufSize = static_cast<size_t>((*stride)) * height * bpp;
-    }
-
     if (error == NO_ERROR) {
         Mutex::Autolock _l(sLock);
         KeyedVector<buffer_handle_t, alloc_rec_t>& list(sAllocList);
+        uint32_t bpp = bytesPerPixel(format);
         alloc_rec_t rec;
         rec.width = width;
         rec.height = height;
@@ -155,7 +136,7 @@ status_t GraphicBufferAllocator::allocate(uint32_t width, uint32_t height,
         rec.format = format;
         rec.layerCount = layerCount;
         rec.usage = usage;
-        rec.size = bufSize;
+        rec.size = static_cast<size_t>(height * (*stride) * bpp);
         rec.requestorName = std::move(requestorName);
         list.add(*handle, rec);
 
