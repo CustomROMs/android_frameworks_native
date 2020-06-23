@@ -16,7 +16,6 @@
 
 #define LOG_TAG "Gralloc2"
 
-#include <hwbinder/IPCThreadState.h>
 #include <ui/Gralloc2.h>
 
 #include <log/log.h>
@@ -256,9 +255,6 @@ Error Allocator::allocate(BufferDescriptor descriptor, uint32_t count,
 
                 *outStride = tmpStride;
             });
-
-    // make sure the kernel driver sees BC_FREE_BUFFER and closes the fds now
-    hardware::IPCThreadState::self()->flushCommands();
 
     return (ret.isOk()) ? error : kTransactionError;
 }
