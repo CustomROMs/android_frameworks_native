@@ -132,7 +132,7 @@ nsecs_t Fence::getSignalTime() const {
 }
 
 size_t Fence::getFlattenedSize() const {
-    return 4;
+    return 1;
 }
 
 size_t Fence::getFdCount() const {
@@ -159,7 +159,7 @@ status_t Fence::unflatten(void const*& buffer, size_t& size, int const*& fds, si
         return INVALID_OPERATION;
     }
 
-    if (size < getFlattenedSize()) {
+    if (size < 1) {
         return NO_MEMORY;
     }
 
