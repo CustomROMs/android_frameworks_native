@@ -50,9 +50,7 @@ public:
     // The imported outHandle must be freed with freeBuffer when no longer
     // needed. rawHandle is owned by the caller.
     status_t importBuffer(buffer_handle_t rawHandle,
-            uint32_t width, uint32_t height, uint32_t layerCount,
-            PixelFormat format, uint64_t usage, uint32_t stride,
-            buffer_handle_t* outHandle);
+        buffer_handle_t* outHandle);
 
     status_t freeBuffer(buffer_handle_t handle);
 

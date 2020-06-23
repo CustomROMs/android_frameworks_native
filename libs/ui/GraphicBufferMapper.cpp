@@ -42,53 +42,23 @@ namespace android {
 
 ANDROID_SINGLETON_STATIC_INSTANCE( GraphicBufferMapper )
 
-void GraphicBufferMapper::preloadHal() {
-    Gralloc2::Mapper::preload();
-}
-
 GraphicBufferMapper::GraphicBufferMapper()
   : mMapper(std::make_unique<const Gralloc2::Mapper>())
 {
 }
 
 status_t GraphicBufferMapper::importBuffer(buffer_handle_t rawHandle,
-        uint32_t width, uint32_t height, uint32_t layerCount,
-        PixelFormat format, uint64_t usage, uint32_t stride,
         buffer_handle_t* outHandle)
 {
     ATRACE_CALL();
 
-    buffer_handle_t bufferHandle;
     Gralloc2::Error error = mMapper->importBuffer(
-            hardware::hidl_handle(rawHandle), &bufferHandle);
-    if (error != Gralloc2::Error::NONE) {
-        ALOGW("importBuffer(%p) failed: %d", rawHandle, error);
-        return static_cast<status_t>(error);
-    }
+            hardware::hidl_handle(rawHandle), outHandle);
 
-    Gralloc2::IMapper::BufferDescriptorInfo info = {};
-    info.width = width;
-    info.height = height;
-    info.layerCount = layerCount;
-    info.format = static_cast<Gralloc2::PixelFormat>(format);
-    info.usage = usage;
+    ALOGW_IF(error != Gralloc2::Error::NONE, "importBuffer(%p) failed: %d",
+            rawHandle, error);
 
-    error = mMapper->validateBufferSize(bufferHandle, info, stride);
-    if (error != Gralloc2::Error::NONE) {
-        ALOGE("validateBufferSize(%p) failed: %d", rawHandle, error);
-        freeBuffer(bufferHandle);
-        return static_cast<status_t>(error);
-    }
-
-    *outHandle = bufferHandle;
-
-    return NO_ERROR;
-}
-
-void GraphicBufferMapper::getTransportSize(buffer_handle_t handle,
-            uint32_t* outTransportNumFds, uint32_t* outTransportNumInts)
-{
-    mMapper->getTransportSize(handle, outTransportNumFds, outTransportNumInts);
+    return static_cast<status_t>(error);
 }
 
 status_t GraphicBufferMapper::freeBuffer(buffer_handle_t handle)
@@ -125,7 +95,7 @@ status_t GraphicBufferMapper::unlock(buffer_handle_t handle)
 {
     int32_t fenceFd = -1;
     status_t error = unlockAsync(handle, &fenceFd);
-    if (error == NO_ERROR && fenceFd >= 0) {
+    if (error == NO_ERROR) {
         sync_wait(fenceFd, -1);
         close(fenceFd);
     }
@@ -153,6 +123,29 @@ status_t GraphicBufferMapper::lockAsync(buffer_handle_t handle,
             handle, error);
 
     return static_cast<status_t>(error);
+}
+
+static inline bool isValidYCbCrPlane(const android_flex_plane_t& plane) {
+    if (plane.bits_per_component != 8) {
+        ALOGV("Invalid number of bits per component: %d",
+                plane.bits_per_component);
+        return false;
+    }
+    if (plane.bits_used != 8) {
+        ALOGV("Invalid number of bits used: %d", plane.bits_used);
+        return false;
+    }
+
+    bool hasValidIncrement = plane.h_increment == 1 ||
+            (plane.component != FLEX_COMPONENT_Y && plane.h_increment == 2);
+    hasValidIncrement = hasValidIncrement && plane.v_increment > 0;
+    if (!hasValidIncrement) {
+        ALOGV("Invalid increment: h %d v %d", plane.h_increment,
+                plane.v_increment);
+        return false;
+    }
+
+    return true;
 }
 
 status_t GraphicBufferMapper::lockAsyncYCbCr(buffer_handle_t handle,

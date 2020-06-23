@@ -23,14 +23,15 @@ cc_library_shared {
     clang: true,
     cflags: [
         "-Wall",
-        "-Werror",
     ],
     cppflags: [
-        "-Weverything",
-
+	"-Wno-switch",
+        "-Wno-shift-sign-overflow",
         // The static constructors and destructors in this library have not been noted to
         // introduce significant overheads
         "-Wno-exit-time-destructors",
+        "-Wno-unused-function",
+        "-Wno-unused-variable",
         "-Wno-global-constructors",
 
         // We only care about compiling as C++14
@@ -77,16 +78,16 @@ cc_library_shared {
     ],
 
     include_dirs: [
+        "hardware/interfaces/graphics/mapper/2.0/default",
         "frameworks/native/include",
     ],
 
     shared_libs: [
         "android.hardware.graphics.allocator@2.0",
-        "android.hardware.graphics.common@1.1",
+        "android.hardware.graphics.common@1.2",
         "android.hardware.graphics.mapper@2.0",
-        "android.hardware.graphics.mapper@2.1",
         "android.hardware.configstore@1.0",
-        "android.hardware.configstore-utils",
+	"android.hardware.configstore-utils",
         "libbase",
         "libcutils",
         "libhardware",
@@ -97,10 +98,6 @@ cc_library_shared {
         "libutils",
         "libutilscallstack",
         "liblog",
-    ],
-
-    export_shared_lib_headers: [
-        "android.hardware.graphics.common@1.1",
     ],
 
     static_libs: [
@@ -178,8 +175,3 @@ cc_defaults {
     shared_libs: ["libutilscallstack"],
     cflags: ["-DVALIDATE_REGIONS"],
 }
-
-subdirs = [
-    "tests",
-    "tools",
-]
